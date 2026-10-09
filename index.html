@@ -3,117 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAME | Joyería Sofisticada</title>
+    <title>CAME | Joyería Romántica y Sofisticada</title>
     <meta name="description" content="Joyería fina y elegante para la mujer panameña moderna.">
-    
-    <!-- Fuentes Elegantes: Cormorant Garamond para títulos, Inter para cuerpo -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-    
+    <!-- Tipografías delicadas y románticas -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-    <!-- Encabezado Minimalista -->
+    <div class="announcement-bar">
+        <p>Envíos gratis en compras mayores a $50.00</p>
+    </div>
+
     <header class="header">
-        <div class="container header-container">
+        <div class="container header-inner">
             <div class="logo">
-                <h1>CAME</h1>
+                <a href="#">CAME</a>
             </div>
-            <nav class="nav-desktop">
-                <a href="#inicio">Inicio</a>
-                <a href="#collares">Colecciones</a>
-                <a href="#nosotros">Nosotros</a>
+            <nav class="nav-links" id="navLinks">
+                <a href="#shop" data-filter="all">Shop</a>
+                <a href="#catalog" data-filter="Collares">Collares</a>
+                <a href="#catalog" data-filter="Aretes">Aretes</a>
+                <a href="#catalog" data-filter="Pulseras">Pulseras</a>
+                <a href="#catalog" data-filter="Sets">Sets</a>
+                <a href="#contact">Contacto</a>
             </nav>
-            <div class="cart">
-                <span>🛒 Carrito (0)</span>
+            <div class="nav-icons">
+                <a href="https://instagram.com/camejoyas" target="_blank" rel="noopener" aria-label="Instagram de CAME">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"></circle></svg>
+                </a>
+                <a href="https://wa.me/50762721611" target="_blank" rel="noopener" aria-label="WhatsApp de CAME">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+                </a>
+                <button class="menu-toggle" id="mobileMenuBtn" aria-label="Menú" aria-expanded="false">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="17" x2="21" y2="17"></line></svg>
+                </button>
             </div>
         </div>
     </header>
 
     <main>
-        <!-- Hero Banner: Deseo de compra para la mujer panameña -->
-        <section class="hero" id="inicio">
-            <div class="container hero-content">
-                <span class="hero-subtitle">ELEGANCIA QUE EMPODERA</span>
-                <h2>Diseñada para brillar contigo</h2>
-                <p>Piezas sofisticadas y modernas para acompañar el ritmo y la fuerza de la mujer panameña en cada momento de su vida.</p>
-                <button class="btn btn-primary">Descubrir Novedades</button>
-            </div>
-        </section>
-
-        <!-- Trust Signals (Confianza para compra en Panamá) -->
-        <section class="trust-signals">
-            <div class="container trust-grid">
-                <div class="trust-item">
-                    <span class="icon">🇵🇦</span>
-                    <p>Envíos Rápidos a todo Panamá</p>
-                </div>
-                <div class="trust-item">
-                    <span class="icon">💳</span>
-                    <p>Múltiples Métodos de Pago Seguros</p>
-                </div>
-                <div class="trust-item">
-                    <span class="icon">✨</span>
-                    <p>Calidad y Garantía en cada pieza</p>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-content-overlay">
+                <div class="container hero-container">
+                    <div class="hero-text-wrapper">
+                        <h2>Diseñada para brillar contigo</h2>
+                        <a href="#shop" class="btn btn-primary">Explorar Colección</a>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Sección: Colección de Collares -->
-        <section class="collection" id="collares">
+        <!-- Barra de beneficios -->
+        <section class="benefits">
+            <div class="container benefits-grid">
+                <div class="benefit"><span>Envíos gratis</span><small>En compras mayores a $50.00</small></div>
+                <div class="benefit"><span>Paga con Yappy</span><small>Rápido y seguro</small></div>
+                <div class="benefit"><span>Atención personal</span><small>Pide directo por WhatsApp</small></div>
+            </div>
+        </section>
+
+        <!-- Categorías (se generan desde js/main.js) -->
+        <section class="categories" id="shop">
             <div class="container">
-                <div class="section-header">
-                    <h3>Colección de Collares</h3>
-                    <div class="divider"></div>
+                <div class="section-title">
+                    <h3>Nuestra Colección</h3>
                 </div>
+                <div class="category-grid" id="categoryGrid"></div>
+            </div>
+        </section>
 
-                <div class="product-grid">
-                    <!-- Producto 1 -->
-                    <article class="product-card">
-                        <div class="product-img-wrapper">
-                            <img src="images/collares/collar-aurora.jpg" alt="Collar Aurora de Plata">
-                        </div>
-                        <div class="product-info">
-                            <h4>Collar Aurora de Plata</h4>
-                            <p class="price">$20.00</p>
-                            <button class="btn btn-secondary">Añadir al Carrito</button>
-                        </div>
-                    </article>
+        <!-- Productos (se generan desde js/main.js) -->
+        <section class="best-sellers" id="catalog">
+            <div class="container">
+                <div class="section-title">
+                    <h3 id="catalogTitle">Todas las piezas</h3>
+                    <button class="show-all" id="showAll" data-filter="all" hidden>Ver todas las piezas</button>
+                </div>
+                <div class="product-grid" id="productGrid"></div>
+            </div>
+        </section>
 
-                    <!-- Producto 2 -->
-                    <article class="product-card">
-                        <div class="product-img-wrapper">
-                            <img src="images/collares/collar-resplandor.jpg" alt="Collar Resplandor Dorado">
-                        </div>
-                        <div class="product-info">
-                            <h4>Collar Resplandor Dorado</h4>
-                            <p class="price">$20.00</p>
-                            <button class="btn btn-secondary">Añadir al Carrito</button>
-                        </div>
-                    </article>
-
-                    <!-- Producto 3 -->
-                    <article class="product-card">
-                        <div class="product-img-wrapper">
-                            <img src="images/collares/collar-luna.jpg" alt="Collar Eclipse de Luna">
-                        </div>
-                        <div class="product-info">
-                            <h4>Collar Eclipse de Luna</h4>
-                            <p class="price">$20.00</p>
-                            <button class="btn btn-secondary">Añadir al Carrito</button>
-                        </div>
-                    </article>
+        <!-- Contacto -->
+        <section class="contact" id="contact">
+            <div class="container">
+                <span class="about-subtitle">HABLEMOS</span>
+                <h2 class="contact-title">Escríbenos, te atendemos personalmente</h2>
+                <div class="contact-actions">
+                    <a class="btn btn-primary" href="https://wa.me/50762721611?text=Hola%20CAME%2C%20quiero%20ver%20m%C3%A1s%20joyas" target="_blank" rel="noopener">WhatsApp +507 6272-1611</a>
+                    <a class="btn btn-primary" href="https://instagram.com/camejoyas" target="_blank" rel="noopener">Instagram @camejoyas</a>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Pie de página -->
     <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 CAME Joyería. Todos los derechos reservados.</p>
+        <div class="container footer-inner">
+            <a href="#" class="footer-logo">CAME</a>
+            <p>Joyería para brillar contigo, desde Panamá.</p>
+            <div class="footer-links">
+                <a href="https://instagram.com/camejoyas" target="_blank" rel="noopener">Instagram</a>
+                <a href="https://wa.me/50762721611" target="_blank" rel="noopener">WhatsApp</a>
+            </div>
+            <small>© 2026 CAME · Pagos con Yappy · Envíos gratis en compras mayores a $50.00</small>
         </div>
     </footer>
+
+    <a class="wa-float" href="https://wa.me/50762721611?text=Hola%20CAME%2C%20quiero%20ver%20m%C3%A1s%20joyas" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+    </a>
+
+    <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Detalle de la pieza">
+        <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">&times;</button>
+        <figure class="lightbox-figure">
+            <img id="lightboxImg" src="" alt="">
+            <figcaption>
+                <h4 id="lightboxName"></h4>
+                <p id="lightboxPrice"></p>
+                <a class="btn btn-primary" id="lightboxBuy" href="#" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+            </figcaption>
+        </figure>
+    </div>
+
+    <script src="js/main.js"></script>
 </body>
 </html>
