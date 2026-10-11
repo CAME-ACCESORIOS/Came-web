@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAME | Joyería Romántica y Sofisticada</title>
     <meta name="description" content="Joyería fina y elegante para la mujer panameña moderna.">
+    <!-- Vista previa al compartir por WhatsApp (falta og:image cuando tengamos el dominio final) -->
+    <meta property="og:title" content="CAME | Entra a nuestra boutique virtual">
+    <meta property="og:description" content="Recorre la colección CAME en 3D. Diseñada para brillar contigo.">
+    <meta property="og:type" content="website">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +56,10 @@
                 <div class="container hero-container">
                     <div class="hero-text-wrapper">
                         <h2>Diseñada para brillar contigo</h2>
-                        <a href="#shop" class="btn btn-primary">Explorar Colección</a>
+                        <div class="hero-actions">
+                            <a href="#shop" class="btn btn-primary">Explorar Colección</a>
+                            <button class="btn btn-primary" id="enterBoutique" type="button">Entrar a la boutique</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,6 +136,26 @@
         </figure>
     </div>
 
+    <!-- Boutique virtual 3D (se activa con el botón del hero; js/boutique.js) -->
+    <div class="boutique" id="boutique" hidden role="dialog" aria-modal="true" aria-label="Boutique virtual CAME">
+        <canvas id="boutiqueCanvas"></canvas>
+        <div class="boutique-top">
+            <span class="boutique-room" id="boutiqueRoom">Bienvenida</span>
+            <div class="boutique-top-actions">
+                <button class="boutique-pill" id="boutiqueCatalog" type="button">Ver catálogo</button>
+                <button class="boutique-pill boutique-close" id="boutiqueClose" type="button" aria-label="Salir de la boutique">&times;</button>
+            </div>
+        </div>
+        <p class="boutique-hint" id="boutiqueHint">Desliza o usa el scroll para recorrer · toca una joya para verla de cerca</p>
+        <div class="boutique-bottom">
+            <div class="boutique-nav" id="boutiqueNav"></div>
+            <div class="boutique-progress"><span id="boutiqueBar"></span></div>
+        </div>
+        <div class="boutique-loading" id="boutiqueLoading">Preparando la boutique…</div>
+    </div>
+
     <script src="js/main.js"></script>
+    <script src="js/tilt.js"></script>
+    <script src="js/boutique.js"></script>
 </body>
 </html>

@@ -37,6 +37,7 @@ function renderProducts(filter = 'all') {
         <article class="product-card">
             <button class="product-img-wrapper" data-index="${products.indexOf(p)}" aria-label="Ver ${p.name} en grande">
                 <img src="${p.img}" alt="${p.category}: ${p.name}" loading="lazy">
+                <span class="glare" aria-hidden="true"></span>
             </button>
             <div class="product-info">
                 <h4>${p.name}</h4>
