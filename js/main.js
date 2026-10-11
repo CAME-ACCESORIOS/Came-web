@@ -29,8 +29,12 @@ function renderCategories() {
     }).join('');
 }
 
+let activeFilter = 'all';
+const listFor = filter => filter === 'all' ? products : products.filter(p => p.category === filter);
+
 function renderProducts(filter = 'all') {
-    const list = filter === 'all' ? products : products.filter(p => p.category === filter);
+    activeFilter = filter;
+    const list = listFor(filter);
     $('catalogTitle').textContent = filter === 'all' ? 'Todas las piezas' : filter;
     $('showAll').hidden = filter === 'all';
     $('productGrid').innerHTML = list.map(p => `
@@ -51,20 +55,47 @@ function renderProducts(filter = 'all') {
 }
 
 const lightbox = $('lightbox');
+let lbList = [];
+let lbPos = 0;
 
-function openLightbox(p) {
-    $('lightboxImg').src = p.img;
-    $('lightboxImg').alt = `${p.category}: ${p.name}`;
+function renderLightbox() {
+    const p = lbList[lbPos];
+    const img = $('lightboxImg');
+    img.style.opacity = 0;
+    img.onload = () => { img.style.opacity = 1; };
+    img.src = p.img;
+    img.alt = `${p.category}: ${p.name}`;
+    if (img.complete) img.style.opacity = 1;
     $('lightboxName').textContent = p.name;
     $('lightboxPrice').textContent = formatPrice(p.price);
     $('lightboxBuy').href = p.wa;
+    const many = lbList.length > 1;
+    $('lightboxPrev').hidden = !many;
+    $('lightboxNext').hidden = !many;
+    $('lightboxCount').textContent = many ? `${lbPos + 1} / ${lbList.length}` : '';
+    if (many) {   // precarga las vecinas para que el cambio sea instantáneo
+        [1, -1].forEach(d => { new Image().src = lbList[(lbPos + d + lbList.length) % lbList.length].img; });
+    }
+}
+
+// list = piezas por las que se navega con las flechas (por defecto, las del filtro activo)
+function openLightbox(p, list = listFor(activeFilter)) {
+    lbList = list.includes(p) ? list : [p];
+    lbPos = lbList.indexOf(p);
+    renderLightbox();
     lightbox.hidden = false;
     document.body.style.overflow = 'hidden';
 }
 
+function stepLightbox(dir) {
+    if (lbList.length < 2) return;
+    lbPos = (lbPos + dir + lbList.length) % lbList.length;
+    renderLightbox();
+}
+
 function closeLightbox() {
     lightbox.hidden = true;
-    document.body.style.overflow = '';
+    document.body.style.overflow = document.body.classList.contains('in-boutique') ? 'hidden' : '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -84,11 +115,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     lightbox.addEventListener('click', e => {
+        if (e.target.closest('#lightboxPrev')) return stepLightbox(-1);
+        if (e.target.closest('#lightboxNext')) return stepLightbox(1);
         if (e.target === lightbox || e.target.closest('#lightboxClose')) closeLightbox();
     });
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+        if (lightbox.hidden) return;
+        if (e.key === 'Escape') closeLightbox();
+        else if (e.key === 'ArrowLeft') stepLightbox(-1);
+        else if (e.key === 'ArrowRight') stepLightbox(1);
     });
+    // Deslizar con el dedo para cambiar de foto
+    let swipeX = null;
+    lightbox.addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, { passive: true });
+    lightbox.addEventListener('touchend', e => {
+        if (swipeX === null) return;
+        const dx = e.changedTouches[0].clientX - swipeX;
+        swipeX = null;
+        if (Math.abs(dx) > 50) stepLightbox(dx < 0 ? 1 : -1);
+    }, { passive: true });
 
     // Menú móvil
     const menuBtn = $('mobileMenuBtn');

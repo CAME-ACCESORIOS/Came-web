@@ -603,7 +603,47 @@ a {
     cursor: pointer;
 }
 
-/* Boutique virtual 3D (lógica en js/boutique.js) */
+/* Visor: flechas, contador y transición entre fotos */
+.lightbox-figure img { transition: opacity 0.25s ease; }
+
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 2rem;
+    line-height: 1;
+    padding-bottom: 4px;
+    cursor: pointer;
+    z-index: 2;
+    transition: background-color 0.3s;
+}
+
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.28); }
+.lightbox-nav[hidden] { display: none; }
+.lightbox-prev { left: 16px; }
+.lightbox-next { right: 16px; }
+
+.lightbox-count {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    opacity: 0.7;
+}
+
+@media (max-width: 576px) {
+    .lightbox-nav { width: 40px; height: 40px; top: auto; bottom: 28px; transform: none; }
+    .lightbox-prev { left: 20px; }
+    .lightbox-next { right: 20px; }
+}
+
+/* Boutique virtual 3D (lógica en js/boutique.js) — paleta violeta pastel + dorado */
 .hero-actions {
     display: flex;
     justify-content: center;
@@ -612,10 +652,15 @@ a {
 }
 
 .boutique {
+    --lila: #E9DEF8;
+    --lila-claro: #FAF6FF;
+    --violeta: #5B4585;
+    --violeta-suave: #8F7FB3;
+    --dorado: #D4AF6A;
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: #e9b79d;
+    background: var(--lila);
     overflow: hidden;
 }
 
@@ -646,18 +691,18 @@ a {
 .boutique-room {
     font-family: var(--font-heading);
     font-style: italic;
-    font-size: 1.8rem;
-    font-weight: 300;
+    font-size: 1.9rem;
+    font-weight: 400;
     color: #fff;
-    text-shadow: 0 2px 10px rgba(60, 35, 25, 0.45);
+    text-shadow: 0 2px 12px rgba(70, 40, 110, 0.55);
 }
 
 .boutique-top-actions { display: flex; gap: 10px; }
 
 .boutique-pill {
-    background: rgba(253, 251, 247, 0.9);
-    color: var(--color-text-dark);
-    border: none;
+    background: rgba(250, 246, 255, 0.92);
+    color: var(--violeta);
+    border: 1px solid rgba(212, 175, 106, 0.6);
     border-radius: 999px;
     padding: 9px 18px;
     font-family: var(--font-body);
@@ -683,7 +728,7 @@ a {
     color: #fff;
     font-size: 0.78rem;
     letter-spacing: 1px;
-    background: rgba(74, 55, 48, 0.55);
+    background: rgba(91, 69, 133, 0.6);
     padding: 8px 18px;
     border-radius: 999px;
     pointer-events: none;
@@ -706,13 +751,16 @@ a {
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 12px;
+    scrollbar-width: none;
 }
+
+.boutique-nav::-webkit-scrollbar { display: none; }
 
 .boutique-chip {
     flex: none;
-    background: rgba(253, 251, 247, 0.55);
-    color: #4a3730;
-    border: 1px solid rgba(253, 251, 247, 0.8);
+    background: rgba(250, 246, 255, 0.6);
+    color: var(--violeta);
+    border: 1px solid rgba(250, 246, 255, 0.9);
     border-radius: 999px;
     padding: 7px 16px;
     font-family: var(--font-body);
@@ -723,19 +771,31 @@ a {
     transition: background-color 0.3s;
 }
 
-.boutique-chip.active { background: #fdfbf7; }
+.boutique-chip.active { background: var(--lila-claro); border-color: var(--dorado); }
 
 .boutique-progress {
     height: 2px;
-    background: rgba(253, 251, 247, 0.35);
+    background: rgba(250, 246, 255, 0.4);
 }
 
 .boutique-progress span {
     display: block;
     height: 100%;
     width: 0;
-    background: #fdfbf7;
+    background: var(--dorado);
 }
+
+/* Destello al cruzar una puerta */
+.boutique-fade {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, #fffbea 0%, #efe5fb 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+
+.boutique-fade.on { opacity: 1; }
 
 .boutique-loading {
     position: absolute;
@@ -743,14 +803,18 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e9b79d;
-    color: #fff;
+    background: var(--lila);
+    color: var(--violeta);
     font-family: var(--font-heading);
     font-style: italic;
-    font-size: 1.8rem;
+    font-size: 1.9rem;
 }
 
 .boutique-loading[hidden] { display: none; }
+
+/* El visor de fotos toma la paleta mágica cuando se abre desde la boutique */
+.in-boutique .lightbox { background: rgba(48, 30, 82, 0.9); }
+.in-boutique .lightbox-figure img { box-shadow: 0 20px 60px rgba(20, 8, 50, 0.5), 0 0 0 6px rgba(212, 175, 106, 0.55); }
 
 @media (max-width: 576px) {
     .boutique-room { font-size: 1.5rem; }

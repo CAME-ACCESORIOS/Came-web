@@ -126,32 +126,36 @@
 
     <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Detalle de la pieza">
         <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">&times;</button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Foto anterior">&#8249;</button>
+        <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Foto siguiente">&#8250;</button>
         <figure class="lightbox-figure">
             <img id="lightboxImg" src="" alt="">
             <figcaption>
                 <h4 id="lightboxName"></h4>
                 <p id="lightboxPrice"></p>
+                <small class="lightbox-count" id="lightboxCount"></small>
                 <a class="btn btn-primary" id="lightboxBuy" href="#" target="_blank" rel="noopener">Pedir por WhatsApp</a>
             </figcaption>
         </figure>
     </div>
 
-    <!-- Boutique virtual 3D (se activa con el botón del hero; js/boutique.js) -->
+    <!-- Boutique virtual 3D: vestíbulo con puertas + salas de museo (js/boutique.js) -->
     <div class="boutique" id="boutique" hidden role="dialog" aria-modal="true" aria-label="Boutique virtual CAME">
         <canvas id="boutiqueCanvas"></canvas>
         <div class="boutique-top">
-            <span class="boutique-room" id="boutiqueRoom">Bienvenida</span>
+            <span class="boutique-room" id="boutiqueRoom">Elige tu puerta</span>
             <div class="boutique-top-actions">
                 <button class="boutique-pill" id="boutiqueCatalog" type="button">Ver catálogo</button>
                 <button class="boutique-pill boutique-close" id="boutiqueClose" type="button" aria-label="Salir de la boutique">&times;</button>
             </div>
         </div>
-        <p class="boutique-hint" id="boutiqueHint">Desliza o usa el scroll para recorrer · toca una joya para verla de cerca</p>
+        <p class="boutique-hint" id="boutiqueHint"></p>
         <div class="boutique-bottom">
             <div class="boutique-nav" id="boutiqueNav"></div>
             <div class="boutique-progress"><span id="boutiqueBar"></span></div>
         </div>
-        <div class="boutique-loading" id="boutiqueLoading">Preparando la boutique…</div>
+        <div class="boutique-fade" id="boutiqueFade"></div>
+        <div class="boutique-loading" id="boutiqueLoading">Abriendo las puertas…</div>
     </div>
 
     <script src="js/main.js"></script>
