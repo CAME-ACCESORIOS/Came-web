@@ -1,14 +1,16 @@
 const WHATSAPP = '50762721611';
 
-// Para agregar una pieza: sumar su nombre a la categoría (la foto va en Imagenes/web/<Categoría>/<Nombre>.jpg)
+// Para agregar una pieza: sumar su nombre AL FINAL de la categoría (la foto va en Imagenes/web/<Categoría>/<Nombre>.jpg).
+// 'cover' es la foto que se ve detrás de la puerta de la boutique (mejor una de producto o de cuello/oreja bien centrada).
+// Las piezas más recientes (las del final de la lista) se muestran primero en el catálogo y en la boutique.
 const CATEGORIES = [
-    { name: 'Collares', price: 20, item: 'el collar', ask: 'pedirlo', items: ['Ave-cora', 'Corazon dorado', 'Flor mari'] },
-    { name: 'Aretes', price: 10, item: 'los aretes', ask: 'pedirlos', items: ['Aroma cafe', 'Candongas variadas', 'Cora perlado', 'Flor perla', 'Piramide de perla', 'Rojo de lotto'] },
-    { name: 'Pulseras', price: 18, item: 'la pulsera', ask: 'pedirla', items: ['Corazon de esperanza', 'Mar como la estrella', 'Un solo mar'] },
-    { name: 'Sets', price: 28, item: 'el set', ask: 'pedirlo', items: ['Corazon brillante', 'Dorado geometrico'] },
+    { name: 'Collares', cover: 'Collar corazon dorado', price: 20, item: 'el collar', ask: 'pedirlo', items: ['Ave-cora', 'Corazon dorado', 'Flor mari', 'Collar corazon dorado', 'Collar gota de agua', 'Collar mini corazon'] },
+    { name: 'Aretes', cover: 'Aretes moño rosa 2', price: 10, item: 'los aretes', ask: 'pedirlos', items: ['Aroma cafe', 'Candongas variadas', 'Cora perlado', 'Flor perla', 'Piramide de perla', 'Rojo de lotto', 'MariCristal', 'Aretes azulado', 'Aretes azulado2', 'Aretes corazon pasion', 'Aretes corazon', 'Aretes elefante dorado', 'Aretes luna', 'Aretes moño rosa', 'Aretes moño rosa 2', 'Aretes perla cuadrada'] },
+    { name: 'Pulseras', cover: 'Corazon de esperanza', price: 18, item: 'la pulsera', ask: 'pedirla', items: ['Corazon de esperanza', 'Mar como la estrella', 'Un solo mar'] },
+    { name: 'Sets', cover: 'Set concha de caracol', price: 28, item: 'el set', ask: 'pedirlo', items: ['Corazon brillante', 'Dorado geometrico', 'Set azul', 'Set concha de caracol', 'Set dijes de mar', 'Set flor dorada', 'Set perlado', 'Collar concha y perla', 'Collar mar-caracol'] },
 ];
 
-const products = CATEGORIES.flatMap(c => c.items.map(name => ({
+const products = CATEGORIES.flatMap(c => [...c.items].reverse().map(name => ({
     name,
     category: c.name,
     price: c.price,

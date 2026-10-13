@@ -1,21 +1,21 @@
-// Boutique virtual CAME: un vestíbulo mágico con una puerta por sección.
+// Boutique virtual CAME: un vestíbulo elegante con una puerta por sección.
 // Cada puerta lleva a una sala de museo con las joyas colgadas como cuadros.
 // Three.js se descarga solo cuando la clienta entra. Usa CATEGORIES, products,
 // formatPrice y openLightbox de main.js.
 (() => {
     const THREE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
-    // Paleta: violeta pastel + dorado
+    // Paleta: fondo claro marfil-rosado, puertas vino y dorado champán
     const C = {
-        sky: 0xE9DEF8,
-        wall: 0xD9C8F2,
-        wainscot: 0xBFA6E6,
-        ceiling: 0x8C74BF,
-        door: 0x8A66C7,
-        doorInset: 0xA98BDD,
-        pilaster: 0xEADDFB,
-        gold: 0xD4AF6A,
-        mat: 0xFAF6FF,
+        sky: 0xF6ECE8,
+        wall: 0xF7EEEA,
+        wainscot: 0xE3CDCB,
+        ceiling: 0xFFFFFF,
+        door: 0x2B2725,
+        doorInset: 0x433D3A,
+        pilaster: 0xFFF8F2,
+        gold: 0xCFAE6A,
+        mat: 0xFFFFFF,
     };
 
     const EYE = 1.7;
@@ -25,10 +25,15 @@
     const DOOR_GAP = 4;
     const HALL = { halfW: 15, h: 7, zFront: 7, zBack: -7 };
     const HALL_CAM_Z = 4;            // distancia de la cámara a las puertas ≈ 11
-    const ROOM = { halfW: 4, h: 5.5 };
-    const SPACING = 4.4;
-    const PIC_H = 1.7;
-    const PIC_MAX_W = 2.2;
+    const ROOM = { halfW: 3.2, h: 5.5 };
+    // Las joyas flotan una tras otra en el centro de la sala, de frente a la clienta.
+    // La cámara hace un zigzag suave para quedar justo frente a cada una.
+    const SPACING = 4.2;             // distancia entre joyas
+    const FIRST = 3.2;               // la primera queda a esta distancia al entrar
+    const STAGGER = 0.7;             // cada joya se corre a un lado, alternando
+    const FLOAT_Y = 1.9;
+    const PIC_H = 1.9;
+    const PIC_MAX_W = 1.5;           // cabe en pantallas verticales de celular
     const OPEN_ANGLE = 1.75;
 
     const $ = id => document.getElementById(id);
@@ -117,34 +122,77 @@
         });
     }
 
-    function checkerTexture(repX, repY) {
-        const t = canvasTexture(256, 256, (ctx, w, h) => {
-            ctx.fillStyle = '#F6F0FC';
+    // Piso de porcelanato tipo mármol: losas grandes con vetas y juntas finas
+    function marbleTexture(repX, repY) {
+        const t = canvasTexture(512, 512, (ctx, w, h) => {
+            ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, w, h);
-            ctx.fillStyle = '#D5C3EE';
-            ctx.fillRect(0, 0, w / 2, h / 2);
-            ctx.fillRect(w / 2, h / 2, w / 2, h / 2);
+            for (let k = 0; k < 14; k++) {           // nubes suaves
+                const x = Math.random() * w, y = Math.random() * h, r = 60 + Math.random() * 110;
+                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+                g.addColorStop(0, Math.random() < 0.5 ? 'rgba(225,210,212,0.35)' : 'rgba(255,255,255,0.45)');
+                g.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, w, h);
+            }
+            for (let k = 0; k < 7; k++) {            // vetas
+                ctx.strokeStyle = `rgba(165,145,150,${0.14 + Math.random() * 0.14})`;
+                ctx.lineWidth = 0.8 + Math.random() * 1.6;
+                ctx.beginPath();
+                let x = Math.random() * w, y = 0;
+                ctx.moveTo(x, y);
+                while (y < h) {
+                    x += (Math.random() - 0.4) * 38;
+                    y += 30 + Math.random() * 30;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            ctx.strokeStyle = 'rgba(180,160,120,0.55)';   // junta
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, w, h);
         });
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
         t.repeat.set(repX, repY);
         return t;
     }
 
+    // Lo que se ve a través de la puerta: la foto de una joya de la sala, a todo el arco
+    function showcaseTexture(imgUrl) {
+        const W = 512, H = 683;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        const g = ctx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.45, W * 0.85);
+        g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.6, '#FBEFEF'); g.addColorStop(1, '#EBD3D6');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        tex.anisotropy = 4;
+        if (imgUrl) new THREE.TextureLoader().load(imgUrl, t => {
+            // la foto llena todo el arco, sin marco
+            const im = t.image, k = Math.max(W / im.width, H / im.height);
+            ctx.drawImage(im, (W - im.width * k) / 2, (H - im.height * k) / 2, im.width * k, im.height * k);
+            tex.needsUpdate = true;
+        });
+        return tex;
+    }
+
     function makeSign(title, subtitle, width) {
         const tex = canvasTexture(1440, 360, (ctx, w, h) => {
-            ctx.fillStyle = 'rgba(250, 246, 255, 0.95)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
             roundRect(ctx, 8, 8, w - 16, h - 16, 24);
             ctx.fill();
-            ctx.strokeStyle = '#D4AF6A';
+            ctx.strokeStyle = '#CFAE6A';
             ctx.lineWidth = 6;
             roundRect(ctx, 24, 24, w - 48, h - 48, 16);
             ctx.stroke();
             ctx.textAlign = 'center';
-            ctx.fillStyle = '#5B4585';
+            ctx.fillStyle = '#6B1A33';
             ctx.font = 'italic 400 150px "Cormorant Garamond", serif';
             ctx.fillText(title, w / 2, subtitle ? 200 : 235);
             if (subtitle) {
-                ctx.fillStyle = '#8F7FB3';
+                ctx.fillStyle = '#A66A7D';
                 ctx.font = '400 36px Montserrat, sans-serif';
                 ctx.fillText(subtitle.toUpperCase().split('').join(' '), w / 2, 280);
             }
@@ -157,18 +205,18 @@
 
     function makePlaque(name, price) {
         const tex = canvasTexture(512, 160, (ctx, w, h) => {
-            ctx.fillStyle = 'rgba(250, 246, 255, 0.97)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
             roundRect(ctx, 4, 4, w - 8, h - 8, 14);
             ctx.fill();
-            ctx.strokeStyle = '#D4AF6A';
+            ctx.strokeStyle = '#CFAE6A';
             ctx.lineWidth = 3;
             roundRect(ctx, 10, 10, w - 20, h - 20, 10);
             ctx.stroke();
             ctx.textAlign = 'center';
-            ctx.fillStyle = '#5B4585';
+            ctx.fillStyle = '#6B1A33';
             ctx.font = 'italic 400 52px "Cormorant Garamond", serif';
             ctx.fillText(name, w / 2, 76);
-            ctx.fillStyle = '#8F7FB3';
+            ctx.fillStyle = '#A66A7D';
             ctx.font = '400 28px Montserrat, sans-serif';
             ctx.fillText(price, w / 2, 124);
         });
@@ -215,7 +263,7 @@
 
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(halfW * 2, len),
-            std(0xffffff, 0.25, 0.05, { map: checkerTexture((halfW * 2) / 3, len / 3) })
+            std(0xffffff, 0.06, 0.12, { emissive: 0xFFFFFF, emissiveIntensity: 0.04, map: marbleTexture((halfW * 2) / 3, len / 3) })
         );
         floor.rotation.x = -Math.PI / 2;
         floor.position.set(0, 0, mid);
@@ -225,6 +273,17 @@
         ceiling.rotation.x = Math.PI / 2;
         ceiling.position.set(0, h, mid);
         g.add(ceiling);
+
+        // franjas de luz empotradas, como en una joyería
+        const stripMat = new THREE.MeshBasicMaterial({ color: 0xFFF4DC });
+        const cols = halfW > 8 ? [-10, -5, 0, 5, 10] : [0];
+        for (let z = zFront - 2; z > zBack + 1; z -= 4) {
+            cols.forEach(x => {
+                const strip = new THREE.Mesh(new THREE.BoxGeometry(halfW > 8 ? 3 : halfW * 1.1, 0.04, 0.3), stripMat);
+                strip.position.set(x, h - 0.02, z);
+                g.add(strip);
+            });
+        }
 
         [-1, 1].forEach(side => {
             const wall = new THREE.Mesh(new THREE.PlaneGeometry(len, h), std(C.wall));
@@ -283,8 +342,9 @@
 
         g.add(new THREE.Mesh(extrude(archShape(hw + 0.22, hr), 0.12), goldMat()));
 
-        // luz al otro lado de la puerta
-        const portalTex = glowTexture([[0, '#FFFFFF'], [0.55, '#FFF1CF'], [1, '#E9D9FA']]);
+        // al otro lado de la puerta: una vitrina iluminada con una joya de la sala
+        const cover = products.find(p => p.category === cat.name && p.name === cat.cover) || products.find(p => p.category === cat.name);
+        const portalTex = showcaseTexture(cover && cover.img);
         portalTex.repeat.set(1 / (2 * hw), 1 / (hr + hw));
         portalTex.offset.set(0.5, 0);
         const portal = new THREE.Mesh(
@@ -294,9 +354,16 @@
         portal.position.z = 0.13;
         g.add(portal);
 
-        const doorMat = std(C.door, 0.4, 0.1, { side: THREE.DoubleSide });
-        const insetMat = std(C.doorInset, 0.35, 0.1, { side: THREE.DoubleSide });
+        // hojas laqueadas en rosa polvo (tono sobre tono con la sala), con panel más claro y filetes dorados
+        const lacquer = (color, rough) => new THREE.MeshStandardMaterial({
+            color, roughness: rough, metalness: 0.2, side: THREE.DoubleSide,
+            emissive: 0x8A5A58, emissiveIntensity: 0.12,
+        });
+        const doorMat = lacquer(0xE2C3C0, 0.14);
+        const insetMat = lacquer(0xF4E4E1, 0.1);
+        const edgeMat = new THREE.LineBasicMaterial({ color: C.gold });
         const leafGeo = extrude(leafShape(hw, hr), 0.1);
+        const edgeGeo = new THREE.EdgesGeometry(leafGeo);
         const hits = [];
         const pivots = [];
 
@@ -311,17 +378,29 @@
             const inset = new THREE.Mesh(leafGeo, insetMat);
             inset.scale.set(0.72, 0.8, 1);
             inset.position.set(-0.16, 0.35, 0.06);
-            const knob = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), goldMat());
+            const knob = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.07), goldMat());
             knob.position.set(-0.17, 2.0, 0.22);
             [leaf, inset].forEach(m => { m.userData.doorIndex = i; hits.push(m); });
-            flip.add(leaf, inset, knob);
+            const insetEdge = new THREE.LineSegments(edgeGeo, edgeMat);
+            insetEdge.scale.copy(inset.scale);
+            insetEdge.position.copy(inset.position);
+            flip.add(leaf, inset, new THREE.LineSegments(edgeGeo, edgeMat), insetEdge, knob);
             g.add(pivot);
             pivots.push(pivot);
         });
 
-        const sign = makeSign(cat.name, `${cat.items.length} piezas`, 2.9);
+        const sign = makeSign(cat.name, `Entra · ${cat.items.length} piezas`, 2.9);
         sign.position.set(0, hr + hw + 0.6, 0.1);
         g.add(sign);
+
+        // aura champán detrás del arco
+        const auraTex = glowTexture([[0, 'rgba(240,200,190,0.55)'], [0.5, 'rgba(246,222,215,0.25)'], [1, 'rgba(252,240,236,0)']]);
+        const aura = new THREE.Mesh(
+            new THREE.PlaneGeometry(hw * 4.6, (hr + hw) * 1.55),
+            new THREE.MeshBasicMaterial({ map: auraTex, transparent: true, depthWrite: false })
+        );
+        aura.position.set(0, (hr + hw) / 2, 0.015);
+        g.add(aura);
 
         return { x, group: g, pivots, hits, angle: 0, target: 0 };
     }
@@ -371,7 +450,7 @@
         chand.add(chain);
         g.add(chand);
 
-        hall.sparkles = makeSparkles(160, { x0: -14, x1: 14, y0: 0.4, y1: 6.5, z0: -6.5, z1: 5 });
+        hall.sparkles = makeSparkles(90, { x0: -14, x1: 14, y0: 0.4, y1: 6.5, z0: -6.5, z1: 5 });
         g.add(hall.sparkles);
 
         scene.add(g);
@@ -379,15 +458,15 @@
     }
 
     // ---------- Salas de museo ----------
-    function addPiece(room, product, side, z) {
+    function addPiece(room, product, side, z) {   // side: -1 | 1
         const g = new THREE.Group();
-        g.position.set(side * (ROOM.halfW - 0.1), 1.9, z);
-        g.rotation.y = -side * Math.PI / 2;
+        g.position.set(side * STAGGER, FLOAT_Y, z);
+        g.userData.phase = z;
 
         const frame = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.1), goldMat());
         const mat = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: C.mat }));
         mat.position.z = 0.055;
-        const pic = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xE9DEF8 }));
+        const pic = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xF3E6E4 }));
         pic.position.z = 0.058;
         pic.userData.productIndex = products.indexOf(product);
 
@@ -416,6 +495,7 @@
         g.add(frame, mat, pic, plaque);
         room.group.add(g);
         room.pictures.push(pic);
+        room.floaters.push(g);
 
         // charco de luz dorada en el piso, como foco de museo
         const pool = new THREE.Mesh(
@@ -423,32 +503,31 @@
             new THREE.MeshBasicMaterial({ map: room.poolTex, transparent: true, depthWrite: false })
         );
         pool.rotation.x = -Math.PI / 2;
-        pool.position.set(side * (ROOM.halfW - 1.5), 0.02, z);
+        pool.position.set(side * STAGGER, 0.02, z);
         room.group.add(pool);
     }
 
     function buildRoom(cat, idx, poolTex) {
         const list = products.filter(p => p.category === cat.name);
-        const rows = Math.ceil(list.length / 2);
-        const maxTravel = 4.5 + (rows - 1) * SPACING + 2;
-        const zBack = -(maxTravel + 5);
+        const maxTravel = Math.max(0, list.length - 1) * SPACING;
+        const zBack = -(FIRST + maxTravel + 5);
 
         const group = new THREE.Group();
         group.position.set(OFFSET * (idx + 1), 0, 0);
         group.visible = false;
         addShell(group, { halfW: ROOM.halfW, h: ROOM.h, zFront: 4, zBack });
 
-        const room = { name: cat.name, group, offsetX: group.position.x, pictures: [], products: list, maxTravel, poolTex, sparkles: null };
+        const room = { name: cat.name, group, offsetX: group.position.x, pictures: [], floaters: [], products: list, maxTravel, poolTex, sparkles: null };
 
         list.forEach((p, k) => {
-            addPiece(room, p, k % 2 === 0 ? -1 : 1, -(4.5 + Math.floor(k / 2) * SPACING));
+            addPiece(room, p, k % 2 === 0 ? -1 : 1, -(FIRST + k * SPACING));
         });
 
         const sign = makeSign(cat.name, `${list.length} piezas`, 3.6);
         sign.position.set(0, 3.3, zBack + 0.05);
         group.add(sign);
 
-        room.sparkles = makeSparkles(110, { x0: -3.5, x1: 3.5, y0: 0.4, y1: ROOM.h - 0.4, z0: zBack + 0.5, z1: 3 });
+        room.sparkles = makeSparkles(60, { x0: -2.7, x1: 2.7, y0: 0.4, y1: ROOM.h - 0.4, z0: zBack + 0.5, z1: 3 });
         group.add(room.sparkles);
 
         scene.add(group);
@@ -477,7 +556,7 @@
         camera.position.set(0, EYE, 0);
         scene.add(camera);
 
-        scene.add(new THREE.HemisphereLight(0xFFF6EA, 0x9A82C9, 0.95));
+        scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xF0DCDD, 0.8));
         const lamp = new THREE.PointLight(0xFFE6BF, 0.6, 16);
         lamp.position.set(0, 0.6, -1);
         camera.add(lamp);
@@ -505,7 +584,7 @@
             $('boutiqueRoom').textContent = mode === 'hall' ? 'Elige tu puerta' : rooms[roomIdx].name;
             hint.textContent = mode === 'hall'
                 ? 'Desliza para ver las puertas · toca una para entrar'
-                : 'Desliza o usa el scroll para recorrer · toca una joya para verla de cerca';
+                : 'Desliza hacia arriba para ver la siguiente joya · toca una para verla de cerca';
             hint.classList.remove('gone');
             overlay.querySelectorAll('.boutique-chip').forEach(el => {
                 const go = el.dataset.go;
@@ -529,6 +608,16 @@
         }
     }
 
+    const roomSide = k => (k % 2 === 0 ? -1 : 1);
+
+    // Al soltar, la cámara se acomoda frente a la joya más cercana
+    let snapTimer = 0;
+    function snap() {
+        if (mode !== 'room') return;
+        const max = rooms[roomIdx].maxTravel;
+        travelTarget = clamp(Math.round(travelTarget / SPACING) * SPACING, 0, max);
+    }
+
     function frame() {
         raf = requestAnimationFrame(frame);
         const now = performance.now();
@@ -546,7 +635,11 @@
             camera.position.set(hall.x + sway.x * 0.3, EYE, HALL_CAM_Z);
         } else if (mode === 'room') {
             travel += (travelTarget - travel) * 0.08;
-            camera.position.set(rooms[roomIdx].offsetX + sway.x * 0.3, EYE, -travel);
+            const r = rooms[roomIdx];
+            const f = travel / SPACING, i0 = Math.floor(f), k = ease(f - i0);
+            const xa = roomSide(i0) * STAGGER, xb = roomSide(Math.min(i0 + 1, r.products.length - 1)) * STAGGER;
+            camera.position.set(r.offsetX + lerp(xa, xb, k) + sway.x * 0.3, EYE, -travel);
+            r.floaters.forEach(g => { g.position.y = FLOAT_Y + Math.sin(t * 1.1 + g.userData.phase) * 0.06; });
         }
         sway.x += (sway.tx - sway.x) * 0.05;
         sway.y += (sway.ty - sway.y) * 0.05;
@@ -706,6 +799,8 @@
         const unit = e.deltaMode === 1 ? 16 : 1;
         const d = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
         pan(d * (mode === 'hall' ? 0.01 : 0.012));
+        clearTimeout(snapTimer);
+        snapTimer = setTimeout(snap, 140);
     }, { passive: false });
 
     let drag = null;
@@ -735,7 +830,7 @@
             const h = pick(e.clientX, e.clientY);
             if (h && h.door !== undefined) enterRoom(h.door);
             else if (h && h.piece !== undefined) openLightbox(products[h.piece], rooms[roomIdx].products);
-        }
+        } else if (drag && mode === 'room') snap();
         drag = null;
     });
     canvas.addEventListener('pointercancel', () => { drag = null; });
@@ -745,9 +840,9 @@
         if (e.key === 'Escape') {
             if (mode === 'room') switchSpace('hall'); else if (mode === 'hall') close();
         } else if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].includes(e.key)) {
-            e.preventDefault(); pan(mode === 'hall' ? 4 : 4);
+            e.preventDefault(); pan(mode === 'hall' ? 4 : SPACING);
         } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) {
-            e.preventDefault(); pan(-4);
+            e.preventDefault(); pan(mode === 'hall' ? -4 : -SPACING);
         }
     });
 

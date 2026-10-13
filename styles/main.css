@@ -643,7 +643,34 @@ a {
     .lightbox-next { right: 20px; }
 }
 
-/* Boutique virtual 3D (lógica en js/boutique.js) — paleta violeta pastel + dorado */
+/* Botón principal de la boutique (hero) */
+.hero .btn-boutique {
+    background: linear-gradient(135deg, #E3C98C, #D4AF6A);
+    border-color: #D4AF6A;
+    color: #4A3B33;
+    animation: boutiqueGlow 2.6s ease-in-out infinite;
+}
+
+.hero .btn-boutique:hover {
+    background: #fff;
+    border-color: #fff;
+    color: var(--color-text-dark);
+}
+
+@keyframes boutiqueGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 106, 0.55); }
+    50% { box-shadow: 0 0 0 12px rgba(212, 175, 106, 0); }
+}
+
+.hero-invite {
+    margin-top: 22px;
+    color: #fff;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* Boutique virtual 3D (lógica en js/boutique.js) — marfil claro, vino y dorado */
 .hero-actions {
     display: flex;
     justify-content: center;
@@ -652,15 +679,16 @@ a {
 }
 
 .boutique {
-    --lila: #E9DEF8;
-    --lila-claro: #FAF6FF;
-    --violeta: #5B4585;
-    --violeta-suave: #8F7FB3;
-    --dorado: #D4AF6A;
+    --marfil: #F7EEEA;
+    --arena: #FFFFFF;
+    --vino: #6B1A33;
+    --vino-suave: #A66A7D;
+    --champan: #7B1E3A;
+    --dorado: #CFAE6A;
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: var(--lila);
+    background: var(--marfil);
     overflow: hidden;
 }
 
@@ -693,15 +721,15 @@ a {
     font-style: italic;
     font-size: 1.9rem;
     font-weight: 400;
-    color: #fff;
-    text-shadow: 0 2px 12px rgba(70, 40, 110, 0.55);
+    color: var(--vino);
+    text-shadow: 0 1px 10px rgba(255, 255, 255, 0.8);
 }
 
 .boutique-top-actions { display: flex; gap: 10px; }
 
 .boutique-pill {
-    background: rgba(250, 246, 255, 0.92);
-    color: var(--violeta);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--vino);
     border: 1px solid rgba(212, 175, 106, 0.6);
     border-radius: 999px;
     padding: 9px 18px;
@@ -728,7 +756,7 @@ a {
     color: #fff;
     font-size: 0.78rem;
     letter-spacing: 1px;
-    background: rgba(91, 69, 133, 0.6);
+    background: rgba(123, 30, 58, 0.85);
     padding: 8px 18px;
     border-radius: 999px;
     pointer-events: none;
@@ -758,9 +786,9 @@ a {
 
 .boutique-chip {
     flex: none;
-    background: rgba(250, 246, 255, 0.6);
-    color: var(--violeta);
-    border: 1px solid rgba(250, 246, 255, 0.9);
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--vino);
+    border: 1px solid rgba(255, 255, 255, 0.9);
     border-radius: 999px;
     padding: 7px 16px;
     font-family: var(--font-body);
@@ -771,25 +799,25 @@ a {
     transition: background-color 0.3s;
 }
 
-.boutique-chip.active { background: var(--lila-claro); border-color: var(--dorado); }
+.boutique-chip.active { background: var(--arena); border-color: var(--champan); color: var(--vino); }
 
 .boutique-progress {
     height: 2px;
-    background: rgba(250, 246, 255, 0.4);
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .boutique-progress span {
     display: block;
     height: 100%;
     width: 0;
-    background: var(--dorado);
+    background: var(--champan);
 }
 
 /* Destello al cruzar una puerta */
 .boutique-fade {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle, #fffbea 0%, #efe5fb 70%);
+    background: radial-gradient(circle, #FFFFFF 0%, #F3DEE0 75%);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.6s ease;
@@ -803,8 +831,8 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lila);
-    color: var(--violeta);
+    background: var(--marfil);
+    color: var(--vino);
     font-family: var(--font-heading);
     font-style: italic;
     font-size: 1.9rem;
@@ -812,9 +840,9 @@ a {
 
 .boutique-loading[hidden] { display: none; }
 
-/* El visor de fotos toma la paleta mágica cuando se abre desde la boutique */
-.in-boutique .lightbox { background: rgba(48, 30, 82, 0.9); }
-.in-boutique .lightbox-figure img { box-shadow: 0 20px 60px rgba(20, 8, 50, 0.5), 0 0 0 6px rgba(212, 175, 106, 0.55); }
+/* El visor de fotos toma la paleta vino cuando se abre desde la boutique */
+.in-boutique .lightbox { background: rgba(48, 12, 24, 0.94); }
+.in-boutique .lightbox-figure img { box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 6px rgba(212, 175, 106, 0.55); }
 
 @media (max-width: 576px) {
     .boutique-room { font-size: 1.5rem; }
