@@ -849,3 +849,22 @@ a {
     .boutique-nav { justify-content: flex-start; }
     .boutique-hint { font-size: 0.72rem; }
 }
+
+/* Piezas únicas vendidas */
+.product-card.is-sold .product-img-wrapper img { filter: grayscale(0.6) opacity(0.65); }
+.product-card.is-sold .price { font-style: italic; opacity: 0.8; }
+.sold-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 12px;
+    background: rgba(107, 26, 51, 0.88);
+    color: #fff;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.btn[hidden] { display: none; }

@@ -470,7 +470,7 @@
         pic.position.z = 0.058;
         pic.userData.productIndex = products.indexOf(product);
 
-        const plaque = makePlaque(product.name, formatPrice(product.price));
+        const plaque = makePlaque(product.name, product.sold ? 'SOLD OUT · pieza única' : formatPrice(product.price));
         plaque.position.z = 0.03;
 
         function fit(aspect) {
