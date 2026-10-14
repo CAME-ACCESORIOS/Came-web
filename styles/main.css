@@ -868,3 +868,58 @@ a {
 }
 
 .btn[hidden] { display: none; }
+
+/* Entrada mágica a la boutique */
+.boutique-loading {
+    flex-direction: column;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, var(--marfil) 55%, #F3DEE0 100%);
+    transition: opacity 1.3s ease, transform 1.5s ease;
+}
+
+.boutique-loading.leaving { opacity: 0; transform: scale(1.12); }
+
+.bl-loading { margin: 0; }
+.boutique-loading.welcome .bl-loading { display: none; }
+
+.bl-welcome {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 0 24px;
+}
+
+.boutique-loading.welcome .bl-welcome { display: flex; }
+
+.bl-welcome > * { opacity: 0; animation: bl-rise 1s ease forwards; }
+.bl-small { font-size: 1.15rem; letter-spacing: 0.3em; text-transform: uppercase; font-style: normal; color: #A66A7D; animation-delay: 0.1s; }
+.bl-brand { font-size: clamp(3.4rem, 14vw, 6rem); letter-spacing: 0.22em; font-style: normal; font-weight: 500; padding-left: 0.22em; animation-delay: 0.45s; }
+.bl-line { width: 0; height: 1px; background: #CFAE6A; animation: bl-line 1.1s ease 0.9s forwards; opacity: 1; }
+.bl-msg { font-size: clamp(1.15rem, 4.5vw, 1.6rem); animation-delay: 1.1s; }
+
+.bl-spark {
+    position: absolute;
+    color: #CFAE6A;
+    opacity: 0;
+    font-size: 1.4rem;
+    font-style: normal;
+}
+
+.boutique-loading.welcome .bl-spark { animation: bl-twinkle 1.8s ease-in-out infinite; }
+.bl-spark.s1 { top: 22%; left: 18%; }
+.bl-spark.s2 { top: 30%; right: 16%; animation-delay: 0.4s !important; font-size: 1rem; }
+.bl-spark.s3 { bottom: 24%; left: 24%; animation-delay: 0.8s !important; font-size: 1.1rem; }
+.bl-spark.s4 { bottom: 20%; right: 22%; animation-delay: 1.2s !important; }
+
+@keyframes bl-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes bl-line { from { width: 0; } to { width: 120px; } }
+@keyframes bl-twinkle { 0%, 100% { opacity: 0; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.15); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .bl-welcome > *, .boutique-loading.welcome .bl-spark { animation: none; opacity: 1; }
+    .bl-line { width: 120px; }
+    .boutique-loading { transition: opacity 0.4s ease; }
+    .boutique-loading.leaving { transform: none; }
+}

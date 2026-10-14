@@ -65,6 +65,8 @@
     const tweens = [];
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let introPush = 0;               // la cámara arranca más atrás y avanza al entrar
+    let introToken = 0;
     const lerp = (a, b, k) => a + (b - a) * k;
     const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -632,7 +634,7 @@
 
         if (mode === 'hall') {
             hall.x += (hall.tx - hall.x) * 0.08;
-            camera.position.set(hall.x + sway.x * 0.3, EYE, HALL_CAM_Z);
+            camera.position.set(hall.x + sway.x * 0.3, EYE, HALL_CAM_Z + introPush);
         } else if (mode === 'room') {
             travel += (travelTarget - travel) * 0.08;
             const r = rooms[roomIdx];
@@ -749,7 +751,11 @@
         overlay.hidden = false;
         document.body.classList.add('in-boutique');
         document.body.style.overflow = 'hidden';
-        $('boutiqueLoading').hidden = false;
+        introToken++;
+        introPush = 0;
+        const box = $('boutiqueLoading');
+        box.classList.remove('welcome', 'leaving');
+        box.hidden = false;
         try {
             await loadThree();
             if (!built) await build();
@@ -759,11 +765,29 @@
             return;
         }
         if (overlay.hidden) return;
-        $('boutiqueLoading').hidden = true;
         fade.classList.remove('on');
         showSpace('hall');
         resize();
         if (!raf) frame();
+        await welcome();
+    }
+
+    // Entrada mágica: mensaje de bienvenida que se disuelve mientras la cámara avanza hacia las puertas
+    async function welcome() {
+        const my = ++introToken;
+        const box = $('boutiqueLoading');
+        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const alive = () => my === introToken && !overlay.hidden;
+        introPush = calm ? 0 : 2.6;
+        box.classList.add('welcome');
+        await sleep(calm ? 700 : 1700);
+        if (!alive()) return;
+        box.classList.add('leaving');
+        const p0 = introPush;
+        await tween(calm ? 1 : 1500, k => { if (alive()) introPush = p0 * (1 - ease(k)); });
+        if (!alive()) return;
+        introPush = 0;
+        box.hidden = true;
     }
 
     function close() {
