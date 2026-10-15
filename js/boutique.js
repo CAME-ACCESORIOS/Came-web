@@ -810,8 +810,8 @@
         };
 
         // campanita de celesta: ataque instantáneo y cola larga
-        function chime(freq, t0, vel, pan = 0, len = 1.8) {
-            [[1, 1], [2, 0.28], [3.01, 0.07]].forEach(([mult, k]) => {
+        function chime(freq, t0, vel, pan = 0, len = 1.8, bright = 1) {
+            [[1, 1], [2, 0.28 * bright], [3.01, 0.07 * bright]].forEach(([mult, k]) => {
                 const o = ctx.createOscillator();
                 o.type = mult === 1 ? 'triangle' : 'sine';
                 o.frequency.value = freq * mult;
@@ -862,23 +862,20 @@
         }
 
         return {
-            // entrada: glissando de arpa tipo Disney + acorde brillante + polvo de estrellas
+            // entrada: arpa suave que sube por un acorde de Re, se abre en un brillo cálido
+            // y deja caer tres destellos. Notas fijas (nada al azar) para que suene limpio.
             welcome() {
                 wanted = true;
                 paint();
                 withCtx(() => {
-                    const t = ctx.currentTime + 0.05;
-                    air(t, 1.0, 500, 3500, 0.03);
-                    const run = [62, 66, 69, 74, 78, 81, 86, 90, 93, 98];
-                    run.forEach((m, i) => chime(hz(m), t + i * 0.085, 0.05, (i / 9) * 1.2 - 0.6, 2.4));
-                    const end = t + run.length * 0.085;
-                    [74, 78, 81, 86].forEach((m, i) => glow(hz(m), end - 0.1, 3.2, 0.018, (i - 1.5) * 0.3));
-                    for (let k = 0; k < 9; k++) {
-                        chime(hz(PENTA[Math.floor(Math.random() * PENTA.length)] + 12), end + 0.2 + k * 0.17 + Math.random() * 0.1, 0.02 * (1 - k * 0.07), Math.random() * 1.6 - 0.8, 1.6);
-                    }
+                    const t = ctx.currentTime + 0.08;
+                    const run = [62, 66, 69, 74, 78, 81, 86];
+                    run.forEach((m, i) => chime(hz(m), t + i * 0.12, 0.05 - i * 0.003, -0.4 + i * 0.13, 2.6, 0.35));
+                    const top = t + run.length * 0.12;
+                    [74, 78, 81, 86].forEach((m, i) => glow(hz(m), top - 0.15, 3.4, 0.016, (i - 1.5) * 0.25));
+                    [93, 90, 86].forEach((m, i) => chime(hz(m), top + 0.25 + i * 0.22, 0.02 - i * 0.004, 0.35 - i * 0.35, 2, 0.3));
                 });
-            },
-            // puerta: madera que cede + soplo + tintineo de brillo al abrirse
+            },            // puerta: madera que cede + soplo + tintineo de brillo al abrirse
             door() {
                 withCtx(() => {
                     const t = ctx.currentTime + 0.02;
