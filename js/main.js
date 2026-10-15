@@ -2,6 +2,8 @@ const WHATSAPP = '50762721611';
 
 // Para agregar una pieza: sumar su nombre AL FINAL de la categoría (la foto va en Imagenes/web/<Categoría>/<Nombre>.jpg).
 // Pieza vendida (son únicas): agregar ' SOLD OUT' al final del nombre de la foto y de la lista, ej. 'Set azul SOLD OUT'.
+// Precio propio de una pieza: agregar '=precio' al final en la lista, ej. 'Set de corazon-plata 925=45' (la foto sigue llamándose sin el '=45').
+// Si no lleva '=precio', usa el 'price' de la categoría.
 // 'cover' es la foto que se ve detrás de la puerta de la boutique (mejor una de producto o de cuello/oreja bien centrada).
 // Las piezas más recientes (las del final de la lista) se muestran primero en el catálogo y en la boutique.
 const CATEGORIES = [
@@ -15,13 +17,14 @@ const CATEGORIES = [
 const SOLD_RE = /\s*SOLD OUT$/i;
 
 const products = CATEGORIES.flatMap(c => [...c.items].reverse().map(file => {
-    const name = file.replace(SOLD_RE, '');
+    const [base, own] = file.split('=');
+    const name = base.replace(SOLD_RE, '');
     return {
         name,
         category: c.name,
-        price: c.price,
-        sold: SOLD_RE.test(file),
-        img: `Imagenes/web/${c.name}/${file}.jpg`,
+        price: own ? parseFloat(own) : c.price,
+        sold: SOLD_RE.test(base),
+        img: `Imagenes/web/${c.name}/${base}.jpg`,
         wa: `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hola, me encantó ${c.item} ${name} y quiero ${c.ask}`)}`,
     };
 }).sort((a, b) => a.sold - b.sold));   // las vendidas van al final de su categoría
