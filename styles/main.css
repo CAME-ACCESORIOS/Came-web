@@ -748,37 +748,6 @@ a {
 .boutique-music { font-size: 1.1rem; line-height: 1; padding: 7px 14px; }
 .boutique-music[aria-pressed="false"] { opacity: 0.55; text-decoration: line-through; }
 
-/* Botón grande: "Seguir a la sala final" y, ya en ella, "Escríbenos por WhatsApp" */
-.boutique-cta {
-    position: absolute;
-    left: 50%;
-    bottom: 100px;
-    transform: translateX(-50%);
-    width: max-content;
-    max-width: calc(100% - 40px);
-    text-align: center;
-    text-decoration: none;
-    background: linear-gradient(135deg, #E3C98C, #CFAE6A);
-    color: var(--vino);
-    border-radius: 999px;
-    padding: 14px 30px;
-    font-family: var(--font-body);
-    font-size: 0.8rem;
-    font-weight: 500;
-    letter-spacing: 1.8px;
-    text-transform: uppercase;
-    box-shadow: 0 8px 26px rgba(123, 30, 58, 0.3);
-    animation: ctaGlow 2.4s ease-in-out infinite;
-}
-
-.boutique-cta[hidden] { display: none; }
-
-@keyframes ctaGlow {
-    0%, 100% { box-shadow: 0 8px 26px rgba(123, 30, 58, 0.3); }
-    50% { box-shadow: 0 8px 34px rgba(207, 174, 106, 0.85); }
-}
-
-@media (prefers-reduced-motion: reduce) { .boutique-cta { animation: none; } }
 
 .boutique-hint {
     position: absolute;

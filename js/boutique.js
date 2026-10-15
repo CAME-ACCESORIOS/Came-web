@@ -536,69 +536,6 @@
         return room;
     }
 
-    // Sala final: una invitación grande para escribir por WhatsApp
-    const FINALE_WA = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola CAME ✨ recorrí la boutique virtual y quiero una joya')}`;
-
-    function buildFinale(idx, poolTex) {
-        const zBack = -9;
-        const group = new THREE.Group();
-        group.position.set(OFFSET * (idx + 1), 0, 0);
-        group.visible = false;
-        addShell(group, { halfW: ROOM.halfW, h: ROOM.h, zFront: 4, zBack });
-
-        const tex = canvasTexture(1200, 1000, (ctx, w, h) => {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
-            roundRect(ctx, 10, 10, w - 20, h - 20, 40);
-            ctx.fill();
-            ctx.strokeStyle = '#CFAE6A';
-            ctx.lineWidth = 8;
-            roundRect(ctx, 34, 34, w - 68, h - 68, 28);
-            ctx.stroke();
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#6B1A33';
-            ctx.font = 'italic 400 230px "Cormorant Garamond", serif';
-            ctx.fillText('CAME', w / 2, 330);
-            ctx.fillStyle = '#A66A7D';
-            ctx.font = '400 34px Montserrat, sans-serif';
-            ctx.fillText('J O Y E R Í A   C O N   A L M A', w / 2, 400);
-            ctx.fillStyle = '#6B1A33';
-            ctx.font = 'italic 400 84px "Cormorant Garamond", serif';
-            ctx.fillText('¿Encontraste tu joya?', w / 2, 560);
-            ctx.font = 'italic 400 60px "Cormorant Garamond", serif';
-            ctx.fillStyle = '#8A4A5E';
-            ctx.fillText('Cada pieza es única, como tú.', w / 2, 640);
-            const g = ctx.createLinearGradient(220, 0, w - 220, 0);
-            g.addColorStop(0, '#E3C98C'); g.addColorStop(1, '#CFAE6A');
-            ctx.fillStyle = g;
-            roundRect(ctx, 200, 730, w - 400, 130, 65);
-            ctx.fill();
-            ctx.fillStyle = '#6B1A33';
-            ctx.font = '500 40px Montserrat, sans-serif';
-            ctx.fillText('ESCRÍBENOS POR WHATSAPP', w / 2, 810);
-        });
-        const panel = new THREE.Mesh(
-            new THREE.PlaneGeometry(4.4, 4.4 * 1000 / 1200),
-            new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-        );
-        panel.position.set(0, 3.0, zBack + 0.06);
-        panel.userData.cta = true;
-        group.add(panel);
-
-        const pool = new THREE.Mesh(
-            new THREE.PlaneGeometry(7, 7),
-            new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false })
-        );
-        pool.rotation.x = -Math.PI / 2;
-        pool.position.set(0, 0.02, -3);
-        group.add(pool);
-
-        const sparkles = makeSparkles(70, { x0: -2.7, x1: 2.7, y0: 0.4, y1: ROOM.h - 0.4, z0: zBack + 0.5, z1: 3 });
-        group.add(sparkles);
-
-        scene.add(group);
-        return { name: 'Te esperamos', finale: true, group, offsetX: group.position.x, pictures: [panel], floaters: [], products: [], maxTravel: 0, poolTex, sparkles };
-    }
-
     async function build() {
         try {
             await Promise.all([
@@ -630,7 +567,6 @@
 
         buildHall();
         CATEGORIES.forEach((cat, i) => rooms.push(buildRoom(cat, i, poolTex)));
-        rooms.push(buildFinale(CATEGORIES.length, poolTex));
         buildNav();
         built = true;
     }
@@ -642,8 +578,6 @@
             rooms.map((r, i) => `<button class="boutique-chip" data-go="${i}">${r.name}</button>`).join('');
     }
 
-    const ctaEl = $('boutiqueCta');
-    let ctaState = '';
     let hudKey = '';
     function updateHud() {
         const key = `${mode === 'busy' ? 'b' : mode}${roomIdx}`;
@@ -652,9 +586,7 @@
             $('boutiqueRoom').textContent = mode === 'hall' ? 'Elige tu puerta' : rooms[roomIdx].name;
             hint.textContent = mode === 'hall'
                 ? 'Desliza para ver las puertas · toca una para entrar'
-                : rooms[roomIdx].finale
-                    ? 'Toca el letrero para escribirnos por WhatsApp'
-                    : 'Desliza hacia arriba para ver la siguiente joya · toca una para verla de cerca';
+                : 'Desliza hacia arriba para ver la siguiente joya · toca una para verla de cerca';
             hint.classList.remove('gone');
             overlay.querySelectorAll('.boutique-chip').forEach(el => {
                 const go = el.dataset.go;
@@ -663,22 +595,8 @@
         }
         let pct = 0;
         if (mode === 'hall') pct = (hall.x - hall.minX) / ((hall.maxX - hall.minX) || 1);
-        else if (mode === 'room') pct = rooms[roomIdx].finale ? 1 : travel / (rooms[roomIdx].maxTravel || 1);
+        else if (mode === 'room') pct = travel / (rooms[roomIdx].maxTravel || 1);
         $('boutiqueBar').style.width = `${clamp(pct, 0, 1) * 100}%`;
-
-        // botón grande: al llegar a la última joya invita a la sala final; allí, a WhatsApp
-        let cta = null;
-        if (mode === 'room') {
-            const r = rooms[roomIdx];
-            if (r.finale) cta = { text: 'Escríbenos por WhatsApp', href: FINALE_WA };
-            else if (travelTarget >= r.maxTravel - 0.01) cta = { text: 'Seguir a la sala final ✨', href: '#' };
-        }
-        const ctaKey = cta ? cta.text : '';
-        if (ctaKey !== ctaState) {
-            ctaState = ctaKey;
-            ctaEl.hidden = !cta;
-            if (cta) { ctaEl.textContent = cta.text; ctaEl.href = cta.href; }
-        }
     }
 
     // ---------- Movimiento ----------
@@ -720,13 +638,9 @@
         } else if (mode === 'room') {
             travel += (travelTarget - travel) * 0.08;
             const r = rooms[roomIdx];
-            if (r.finale) {
-                camera.position.set(r.offsetX + sway.x * 0.3, EYE, 0);
-            } else {
-                const f = travel / SPACING, i0 = Math.floor(f), k = ease(f - i0);
-                const xa = roomSide(i0) * STAGGER, xb = roomSide(Math.min(i0 + 1, r.products.length - 1)) * STAGGER;
-                camera.position.set(r.offsetX + lerp(xa, xb, k) + sway.x * 0.3, EYE, -travel);
-            }
+            const f = travel / SPACING, i0 = Math.floor(f), k = ease(f - i0);
+            const xa = roomSide(i0) * STAGGER, xb = roomSide(Math.min(i0 + 1, r.products.length - 1)) * STAGGER;
+            camera.position.set(r.offsetX + lerp(xa, xb, k) + sway.x * 0.3, EYE, -travel);
             r.floaters.forEach(g => { g.position.y = FLOAT_Y + Math.sin(t * 1.1 + g.userData.phase) * 0.06; });
         }
         sway.x += (sway.tx - sway.x) * 0.05;
@@ -829,7 +743,6 @@
             return hit ? { door: hit.object.userData.doorIndex } : null;
         }
         const hit = ray.intersectObjects(rooms[roomIdx].pictures)[0];
-        if (hit && hit.object.userData.cta) return { cta: true };
         return hit ? { piece: hit.object.userData.productIndex } : null;
     }
 
@@ -1020,8 +933,38 @@
             master.gain.linearRampToValueAtTime(v, t + secs);
         }
 
+        // Si existe Audio/musica.mp3 se usa esa canción; si no, suena la música generada de arriba.
+        const FILE = 'Audio/musica.mp3';
+        let track = null, trackOk = null, trackFade = 0;
+
+        function ramp(to, ms) {
+            if (!track) return;
+            clearInterval(trackFade);
+            const from = track.volume, t0 = performance.now(), el = track;
+            trackFade = setInterval(() => {
+                const k = Math.min(1, (performance.now() - t0) / ms);
+                el.volume = from + (to - from) * k;
+                if (k >= 1) { clearInterval(trackFade); if (to === 0) el.pause(); }
+            }, 50);
+        }
+
+        function playTrack() {
+            if (trackOk === false) return false;
+            if (!track) {
+                track = new Audio(FILE);
+                track.loop = true;
+                track.volume = 0;
+                track.addEventListener('error', () => { trackOk = false; track = null; play(); });
+            }
+            const p = track.play();
+            if (p && p.catch) p.catch(() => { /* el navegador exige un toque primero */ });
+            ramp(0.7, 1500);
+            return true;
+        }
+
         function play() {
             if (!wanted || muted) return;
+            if (playTrack()) return;
             if (!ctx && !init()) return;
             const go = () => {
                 if (!wanted || muted || ctx.state !== 'running') return;
@@ -1040,6 +983,7 @@
         }
 
         function halt() {
+            if (track) ramp(0, 500);
             if (!ctx) return;
             fadeTo(0, 0.6);
             clearInterval(timer);
@@ -1056,14 +1000,17 @@
         return {
             start() { wanted = true; paint(); play(); },
             stop() { wanted = false; halt(); },
-            kick() { if (wanted && !muted && ctx && ctx.state !== 'running') play(); else if (wanted && !muted && !ctx) play(); },
+            kick() {
+                if (!wanted || muted) return;
+                if (track ? track.paused : (!ctx || ctx.state !== 'running')) play();
+            },
             toggle() {
                 muted = !muted;
                 try { localStorage.setItem('came-music', muted ? 'off' : 'on'); } catch (_) { /* sin almacenamiento */ }
                 paint();
                 if (muted) halt(); else play();
             },
-            pause() { if (ctx && timer) halt(); },
+            pause() { if (track || (ctx && timer)) halt(); },
             resume() { play(); },
         };
     })();
@@ -1129,12 +1076,6 @@
         $('catalog').scrollIntoView({ behavior: 'smooth' });
     });
 
-    ctaEl.addEventListener('click', e => {
-        if (ctaEl.getAttribute('href') !== '#') return;   // WhatsApp: abre el enlace normal
-        e.preventDefault();
-        switchSpace(rooms.length - 1);
-    });
-
     $('boutiqueNav').addEventListener('click', e => {
         const chip = e.target.closest('[data-go]');
         if (!chip || mode === 'busy') return;
@@ -1142,8 +1083,7 @@
         if (go === 'hall') {
             if (mode === 'room') switchSpace('hall');
         } else if (mode === 'hall') {
-            if (rooms[Number(go)].finale) switchSpace(Number(go));   // la sala final no tiene puerta
-            else enterRoom(Number(go));
+            enterRoom(Number(go));
         } else if (Number(go) !== roomIdx) {
             switchSpace(Number(go));
         }
@@ -1184,7 +1124,6 @@
         if (drag && drag.moved < 6) {
             const h = pick(e.clientX, e.clientY);
             if (h && h.door !== undefined) enterRoom(h.door);
-            else if (h && h.cta) window.open(FINALE_WA, '_blank', 'noopener');
             else if (h && h.piece !== undefined) openLightbox(products[h.piece], rooms[roomIdx].products);
         } else if (drag && mode === 'room') snap();
         drag = null;
