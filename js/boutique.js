@@ -756,16 +756,19 @@
     const sfx = (() => {
         const hz = m => 440 * Math.pow(2, (m - 69) / 12);
         const PENTA = [81, 83, 86, 88, 90, 93];   // La Si Re Mi Fa# La (agudos, escala pentatónica de Re)
-        let ctx = null, bus = null, master = null, noiseBuf = null;
+        let ctx = null, bus = null, master = null, comp = null, noiseBuf = null, keepAlive = null;
         let wanted = false, muted = false, lastPass = 0;
         try { muted = localStorage.getItem('came-music') === 'off'; } catch (_) { /* sin almacenamiento */ }
 
         function init() {
             const AC = window.AudioContext || window.webkitAudioContext;
             if (!AC) return false;
+            // iPhone: sin esto el interruptor de silencio apaga el audio de la web
+            try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* no soportado */ }
             ctx = new AC();
             master = ctx.createGain();
-            master.gain.value = 0.9;
+            master.gain.value = 2.2;   // los parlantes del celular son débiles: más volumen, con compresor para no distorsionar
+            comp = ctx.createDynamicsCompressor();
             const lp = ctx.createBiquadFilter();
             lp.type = 'lowpass';
             lp.frequency.value = 7000;
@@ -785,7 +788,7 @@
             bus.connect(dry); dry.connect(lp);
             bus.connect(verb); verb.connect(wet); wet.connect(lp);
             lp.connect(master);
-            master.connect(ctx.destination);
+            master.connect(comp); comp.connect(ctx.destination);
             const nl = ctx.sampleRate;
             noiseBuf = ctx.createBuffer(1, nl, ctx.sampleRate);
             const nd = noiseBuf.getChannelData(0);
@@ -799,6 +802,38 @@
             if (!ctx && !init()) return;
             if (ctx.state === 'running') fn();
             else ctx.resume().then(() => { if (wanted && !muted && ctx.state === 'running') fn(); }).catch(() => { /* hace falta un toque primero */ });
+        }
+
+        // En iPhone el audio de la web respeta el interruptor de silencio, salvo que suene un <audio> de verdad:
+        // uno mudo en bucle lo mantiene en modo "reproducción". Se crea una sola vez, dentro de un toque.
+        function silentLoop() {
+            if (keepAlive) { if (keepAlive.paused) keepAlive.play().catch(() => {}); return; }
+            try {
+                const n = 800, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+                const w = (o, t) => [...t].forEach((c, i) => b[o + i] = c.charCodeAt(0));
+                w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt ');
+                v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+                v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+                w(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+                keepAlive = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' })));
+                keepAlive.loop = true;
+                keepAlive.setAttribute('playsinline', '');
+                keepAlive.play().catch(() => { keepAlive = null; });
+            } catch (_) { keepAlive = null; }
+        }
+
+        // Se llama en cada toque: crea y "desbloquea" el audio (los celulares lo exigen dentro de un toque)
+        function unlock() {
+            if (!wanted || muted) return;
+            if (!ctx && !init()) return;
+            silentLoop();
+            if (ctx.state !== 'running') ctx.resume().catch(() => {});
+            try {   // un instante de silencio termina de despertar el audio en iOS
+                const s0 = ctx.createBufferSource();
+                s0.buffer = ctx.createBuffer(1, 1, 22050);
+                s0.connect(ctx.destination);
+                s0.start(0);
+            } catch (_) { /* nada */ }
         }
 
         const out = (node, pan) => {
@@ -866,6 +901,7 @@
             welcome() {
                 wanted = true;
                 paint();
+                unlock();   // viene del toque en "Entrar": momento válido para despertar el audio del celular
                 withCtx(() => {
                     const t = ctx.currentTime + 0.05;
                     chime(hz(86), t, 0.04, 0, 3, 0.2);          // Re agudo, casi puro
@@ -914,12 +950,13 @@
                     chime(hz(m + 12), t + 0.2, 0.013, Math.random() * 0.8 - 0.4, 1.2);
                 });
             },
-            stop() { wanted = false; },
-            kick() { if (wanted && !muted && ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
+            stop() { wanted = false; if (keepAlive) keepAlive.pause(); },
+            kick() { unlock(); },
             pause() { if (ctx && ctx.state === 'running') ctx.suspend(); },
             resume() { if (wanted && !muted && ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
             toggle() {
                 muted = !muted;
+                if (!muted) { wanted = true; unlock(); }
                 try { localStorage.setItem('came-music', muted ? 'off' : 'on'); } catch (_) { /* sin almacenamiento */ }
                 paint();
                 if (!muted) this.pass();   // pequeña muestra al activar el sonido
@@ -1063,7 +1100,8 @@
     });
 
     $('boutiqueMusic').addEventListener('click', () => sfx.toggle());
-    overlay.addEventListener('pointerdown', () => sfx.kick());   // enlace directo: el navegador pide un toque antes de sonar
+    // El celular solo deja sonar tras un toque "completo" (soltar el dedo / clic), no al apoyarlo: se escucha en los tres
+    ['touchend', 'click', 'pointerup', 'keydown'].forEach(ev => overlay.addEventListener(ev, () => sfx.kick(), { passive: true }));
     document.addEventListener('visibilitychange', () => {
         if (overlay.hidden) return;
         if (document.hidden) sfx.pause(); else sfx.resume();
