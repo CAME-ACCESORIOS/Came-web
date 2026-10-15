@@ -637,6 +637,7 @@
             camera.position.set(hall.x + sway.x * 0.3, EYE, HALL_CAM_Z + introPush);
         } else if (mode === 'room') {
             travel += (travelTarget - travel) * 0.08;
+            sfx.watch(Math.round(travel / SPACING));
             const r = rooms[roomIdx];
             const f = travel / SPACING, i0 = Math.floor(f), k = ease(f - i0);
             const xa = roomSide(i0) * STAGGER, xb = roomSide(Math.min(i0 + 1, r.products.length - 1)) * STAGGER;
@@ -692,6 +693,7 @@
             mode = 'room';
             roomIdx = target;
             travel = travelTarget = 0;
+            sfx.reset();
             camera.position.set(rooms[target].offsetX, EYE, 0);
         }
         hudKey = '';
@@ -700,6 +702,7 @@
     async function switchSpace(target) {   // con destello
         if (mode === 'busy') return;
         mode = 'busy';
+        sfx.whoosh();
         fade.classList.add('on');
         await sleep(550);
         showSpace(target);
@@ -713,6 +716,7 @@
         hint.classList.add('gone');
         const d = hall.doors[i];
         d.target = OPEN_ANGLE;
+        sfx.door();
         const x0 = camera.position.x;
         await tween(1300, k => {
             camera.position.x = lerp(x0, d.x, ease(k));
@@ -746,278 +750,201 @@
         return hit ? { piece: hit.object.userData.productIndex } : null;
     }
 
-    // ---------- Música ambiental ----------
-    // Generada con Web Audio (sin archivos): acordes suaves en capas + campanitas tipo cajita de música.
-    const music = (() => {
-        // Vals romántico en Re mayor (3/4): bajo suave, acordes en el 2 y 3, arpa que fluye,
-        // cuerdas y una melodía cantada con celesta. Todo se genera aquí, sin archivos de audio.
-        const BEAT = 0.55;                      // ≈110 pulsos por minuto: un vals lento y enamorado
-        const BAR = BEAT * 3;
+    // ---------- Sonidos ----------
+    // Efectos suaves generados con Web Audio (sin archivos): destello mágico al entrar,
+    // puerta que se abre y un tintineo sutil cada vez que pasa una joya.
+    const sfx = (() => {
         const hz = m => 440 * Math.pow(2, (m - 69) / 12);
-        // 16 compases: A = D · Bm · Em · A7 · D · G · A · D   B = Bm · G · D/F# · Em · A · Bm · G · A7
-        const BARS = [
-            { bass: 38, chord: [62, 66, 69] }, { bass: 47, chord: [62, 66, 71] },
-            { bass: 40, chord: [64, 67, 71] }, { bass: 45, chord: [61, 64, 67] },
-            { bass: 38, chord: [62, 66, 69] }, { bass: 43, chord: [59, 62, 67] },
-            { bass: 45, chord: [61, 64, 69] }, { bass: 38, chord: [62, 66, 69] },
-            { bass: 47, chord: [62, 66, 71] }, { bass: 43, chord: [59, 62, 67] },
-            { bass: 42, chord: [62, 66, 69] }, { bass: 40, chord: [59, 64, 67] },
-            { bass: 45, chord: [61, 64, 69] }, { bass: 47, chord: [62, 66, 71] },
-            { bass: 43, chord: [59, 62, 67] }, { bass: 45, chord: [61, 64, 67] },
-        ];
-        // melodía: [pulso dentro del compás, nota MIDI, duración en pulsos]
-        const MELODY = [
-            [[0, 78, 2], [2, 76, 1]], [[0, 74, 1.5], [1.5, 76, 0.5], [2, 78, 1]],
-            [[0, 79, 2], [2, 78, 1]], [[0, 76, 2], [2, 73, 1]],
-            [[0, 74, 1], [1, 78, 1], [2, 81, 1]], [[0, 83, 2], [2, 81, 1]],
-            [[0, 81, 1], [1, 78, 1], [2, 76, 1]], [[0, 74, 3]],
-            [[0, 78, 2], [2, 79, 1]], [[0, 83, 2], [2, 81, 1]],
-            [[0, 81, 1.5], [1.5, 78, 0.5], [2, 74, 1]], [[0, 76, 2], [2, 79, 1]],
-            [[0, 81, 2], [2, 85, 1]], [[0, 86, 1.5], [1.5, 85, 0.5], [2, 83, 1]],
-            [[0, 81, 1], [1, 79, 1], [2, 78, 1]], [[0, 76, 3]],
-        ];
-        let ctx = null, master = null, bus = null, timer = 0;
-        let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0, cur = BARS[0];
-        let muted = false;
+        const PENTA = [81, 83, 86, 88, 90, 93];   // La Si Re Mi Fa# La (agudos, escala pentatónica de Re)
+        let ctx = null, bus = null, master = null, noiseBuf = null;
+        let wanted = false, muted = false, lastPass = 0;
         try { muted = localStorage.getItem('came-music') === 'off'; } catch (_) { /* sin almacenamiento */ }
-
-        function impulse(secs) {   // reverberación de salón hecha con ruido que se apaga
-            const len = Math.floor(ctx.sampleRate * secs);
-            const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-            for (let ch = 0; ch < 2; ch++) {
-                const d = buf.getChannelData(ch);
-                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
-            }
-            return buf;
-        }
 
         function init() {
             const AC = window.AudioContext || window.webkitAudioContext;
             if (!AC) return false;
             ctx = new AC();
             master = ctx.createGain();
-            master.gain.value = 0;
+            master.gain.value = 0.9;
             const lp = ctx.createBiquadFilter();
             lp.type = 'lowpass';
-            lp.frequency.value = 4200;   // más cálido y suave
+            lp.frequency.value = 7000;
             bus = ctx.createGain();
             const dry = ctx.createGain();
-            dry.gain.value = 0.8;
+            dry.gain.value = 0.75;
             const verb = ctx.createConvolver();
-            verb.buffer = impulse(3.2);
+            const len = Math.floor(ctx.sampleRate * 2.8);
+            const imp = ctx.createBuffer(2, len, ctx.sampleRate);
+            for (let ch = 0; ch < 2; ch++) {
+                const d = imp.getChannelData(ch);
+                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+            }
+            verb.buffer = imp;
             const wet = ctx.createGain();
-            wet.gain.value = 0.95;
+            wet.gain.value = 0.9;
             bus.connect(dry); dry.connect(lp);
             bus.connect(verb); verb.connect(wet); wet.connect(lp);
             lp.connect(master);
             master.connect(ctx.destination);
+            const nl = ctx.sampleRate;
+            noiseBuf = ctx.createBuffer(1, nl, ctx.sampleRate);
+            const nd = noiseBuf.getChannelData(0);
+            for (let i = 0; i < nl; i++) nd[i] = Math.random() * 2 - 1;
             return true;
         }
 
-        function out(node, pan) {
+        // ejecuta fn con el audio listo (o no hace nada si está silenciado)
+        function withCtx(fn) {
+            if (!wanted || muted) return;
+            if (!ctx && !init()) return;
+            if (ctx.state === 'running') fn();
+            else ctx.resume().then(() => { if (wanted && !muted && ctx.state === 'running') fn(); }).catch(() => { /* hace falta un toque primero */ });
+        }
+
+        const out = (node, pan) => {
             if (ctx.createStereoPanner) {
                 const p = ctx.createStereoPanner();
                 p.pan.value = pan;
                 node.connect(p); p.connect(bus);
             } else node.connect(bus);
-        }
+        };
 
-        // nota de arpa / celesta: ataque instantáneo y cola que se apaga
-        function pluck(freq, t0, vel, pan, len = 1.6) {
-            [[1, 1, 'triangle'], [2, 0.3, 'sine'], [3.01, 0.08, 'sine']].forEach(([mult, k, type]) => {
+        // campanita de celesta: ataque instantáneo y cola larga
+        function chime(freq, t0, vel, pan = 0, len = 1.8) {
+            [[1, 1], [2, 0.28], [3.01, 0.07]].forEach(([mult, k]) => {
                 const o = ctx.createOscillator();
-                o.type = type;
+                o.type = mult === 1 ? 'triangle' : 'sine';
                 o.frequency.value = freq * mult;
                 const g = ctx.createGain();
                 g.gain.setValueAtTime(0, t0);
-                g.gain.linearRampToValueAtTime(vel * k, t0 + 0.01);
-                g.gain.exponentialRampToValueAtTime(0.0001, t0 + len / (mult > 1 ? 1.6 : 1));
+                g.gain.linearRampToValueAtTime(vel * k, t0 + 0.008);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + len / (mult > 1 ? 1.5 : 1));
                 o.connect(g); out(g, pan);
                 o.start(t0);
                 o.stop(t0 + len + 0.1);
             });
         }
 
-        // cuerdas suaves que acompañan: entran y salen dentro del compás
-        function swell(freq, t0, len, amp, pan) {
-            [-5, 5].forEach(cents => {
+        // brillo sostenido que sube y se apaga (el "aaah" mágico de un acorde)
+        function glow(freq, t0, len, amp, pan = 0) {
+            [-6, 6].forEach(cents => {
                 const o = ctx.createOscillator();
-                o.type = 'triangle';
+                o.type = 'sine';
                 o.frequency.value = freq;
                 o.detune.value = cents;
                 const g = ctx.createGain();
                 g.gain.setValueAtTime(0, t0);
-                g.gain.linearRampToValueAtTime(amp, t0 + len * 0.4);
-                g.gain.linearRampToValueAtTime(0, t0 + len * 1.15);
+                g.gain.linearRampToValueAtTime(amp, t0 + len * 0.35);
+                g.gain.linearRampToValueAtTime(0, t0 + len);
                 o.connect(g); out(g, pan);
                 o.start(t0);
-                o.stop(t0 + len * 1.2);
+                o.stop(t0 + len + 0.1);
             });
         }
 
-        // voz principal: nota sostenida con vibrato suave, como un violín o una voz
-        function sing(freq, t0, len, amp, pan) {
-            const o = ctx.createOscillator();
-            const o2 = ctx.createOscillator();
-            o.type = 'sine';
-            o2.type = 'triangle';
-            o.frequency.value = o2.frequency.value = freq;
-            const lfo = ctx.createOscillator();
-            lfo.frequency.value = 5.2;
-            const depth = ctx.createGain();
-            depth.gain.setValueAtTime(0, t0);
-            depth.gain.linearRampToValueAtTime(7, t0 + Math.min(0.5, len));
-            lfo.connect(depth); depth.connect(o.detune); depth.connect(o2.detune);
+        // soplo de aire filtrado: de "tela que se mueve" a "puerta que cede"
+        function air(t0, len, f0, f1, amp, pan = 0) {
+            const s = ctx.createBufferSource();
+            s.buffer = noiseBuf;
+            s.loop = true;
+            const bp = ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.Q.value = 1.2;
+            bp.frequency.setValueAtTime(f0, t0);
+            bp.frequency.exponentialRampToValueAtTime(f1, t0 + len);
             const g = ctx.createGain();
-            const end = t0 + len;
             g.gain.setValueAtTime(0, t0);
-            g.gain.linearRampToValueAtTime(amp, t0 + 0.09);
-            g.gain.setValueAtTime(amp * 0.85, end - 0.05);
-            g.gain.linearRampToValueAtTime(0, end + 0.45);
-            const mix = ctx.createGain();
-            mix.gain.value = 0.45;
-            o.connect(g); o2.connect(mix); mix.connect(g);
-            out(g, pan);
-            [o, o2, lfo].forEach(n => { n.start(t0); n.stop(end + 0.5); });
-        }
-
-        // arpegio de apertura: una escala de arpa que sube, como abrir un telón
-        function flourish(t0) {
-            [62, 66, 69, 74, 78, 81, 86, 90, 93].forEach((m, i) => {
-                pluck(hz(m), t0 + i * 0.1, 0.045 * (1 - i * 0.04), (i / 8) * 1.2 - 0.6, 2.4);
-            });
-        }
-
-        function playBar(t0, n) {
-            const idx = n % 16;
-            const bar = BARS[idx];
-            const cycle = Math.floor(n / 16);
-            cur = bar;
-            // bajo suave en el 1 y acordes ligeros en el 2 y el 3
-            pluck(hz(bar.bass), t0, 0.09, -0.2, 1.3);
-            [1, 2].forEach(b => bar.chord.forEach((m, i) => pluck(hz(m), t0 + b * BEAT, 0.016, (i - 1) * 0.3, 0.6)));
-            bar.chord.forEach((m, i) => swell(hz(m), t0, BAR, 0.012, (i - 1) * 0.4));
-            // arpa: seis corcheas que suben y bajan por el acorde
-            const [a, b, c] = bar.chord.map(m => m + 12);
-            [a, b, c, a + 12, c, b].forEach((m, i) => {
-                pluck(hz(m), t0 + i * BEAT / 2, 0.022, Math.sin(i + n) * 0.5, 1.4);
-            });
-            // melodía cantada, con celesta que la acompaña (una octava arriba en las vueltas impares)
-            const lift = cycle % 2 && idx < 4 ? 12 : 0;
-            MELODY[idx].forEach(([beat, m, len]) => {
-                const t = t0 + beat * BEAT, d = len * BEAT;
-                sing(hz(m), t, d * 0.97, 0.05, 0.1);
-                pluck(hz(m + 12 + lift), t, 0.03, 0.2, 0.8 + d);
-            });
-        }
-
-        function tick() {
-            if (!ctx || ctx.state !== 'running') return;
-            const now = ctx.currentTime;
-            while (nextChord < now + 1.5) {
-                playBar(nextChord, chordIdx);
-                chordIdx++;
-                nextChord += BAR;
-            }
-            while (nextBell < now + 1.5) {   // destellos agudos sueltos, como polvo de hadas
-                const m = cur.chord[Math.floor(Math.random() * cur.chord.length)] + 36;
-                pluck(hz(m), nextBell, 0.012, Math.random() * 1.6 - 0.8, 2);
-                nextBell += 1.1 + Math.random() * 2.2;
-            }
-        }
-        function fadeTo(v, secs) {
-            if (!master) return;
-            const t = ctx.currentTime;
-            master.gain.cancelScheduledValues(t);
-            master.gain.setValueAtTime(master.gain.value, t);
-            master.gain.linearRampToValueAtTime(v, t + secs);
-        }
-
-        // Si existe Audio/musica.mp3 se usa esa canción; si no, suena la música generada de arriba.
-        const FILE = 'Audio/musica.mp3';
-        let track = null, trackOk = null, trackFade = 0;
-
-        function ramp(to, ms) {
-            if (!track) return;
-            clearInterval(trackFade);
-            const from = track.volume, t0 = performance.now(), el = track;
-            trackFade = setInterval(() => {
-                const k = Math.min(1, (performance.now() - t0) / ms);
-                el.volume = from + (to - from) * k;
-                if (k >= 1) { clearInterval(trackFade); if (to === 0) el.pause(); }
-            }, 50);
-        }
-
-        function playTrack() {
-            if (trackOk === false) return false;
-            if (!track) {
-                track = new Audio(FILE);
-                track.loop = true;
-                track.volume = 0;
-                track.addEventListener('error', () => { trackOk = false; track = null; play(); });
-            }
-            const p = track.play();
-            if (p && p.catch) p.catch(() => { /* el navegador exige un toque primero */ });
-            ramp(0.7, 1500);
-            return true;
-        }
-
-        function play() {
-            if (!wanted || muted) return;
-            if (playTrack()) return;
-            if (!ctx && !init()) return;
-            const go = () => {
-                if (!wanted || muted || ctx.state !== 'running') return;
-                if (!timer) {
-                    nextChord = ctx.currentTime + 1.0;      // el arpegio de apertura suena primero
-                    nextBell = nextChord + BAR;
-                    chordIdx = 0;
-                    flourish(ctx.currentTime + 0.05);
-                    timer = setInterval(tick, 400);
-                    tick();
-                }
-                fadeTo(0.9, 1.2);
-            };
-            if (ctx.state === 'running') go();
-            else ctx.resume().then(go).catch(() => { /* el navegador exige un toque primero */ });
-        }
-
-        function halt() {
-            if (track) ramp(0, 500);
-            if (!ctx) return;
-            fadeTo(0, 0.6);
-            clearInterval(timer);
-            timer = 0;
-            setTimeout(() => { if (!timer && ctx.state === 'running') ctx.suspend(); }, 800);
-        }
-
-        function paint() {
-            const b = $('boutiqueMusic');
-            b.setAttribute('aria-pressed', String(!muted));
-            b.setAttribute('aria-label', muted ? 'Activar música' : 'Silenciar música');
+            g.gain.linearRampToValueAtTime(amp, t0 + len * 0.4);
+            g.gain.linearRampToValueAtTime(0, t0 + len);
+            s.connect(bp); bp.connect(g); out(g, pan);
+            s.start(t0);
+            s.stop(t0 + len + 0.05);
         }
 
         return {
-            start() { wanted = true; paint(); play(); },
-            stop() { wanted = false; halt(); },
-            kick() {
-                if (!wanted || muted) return;
-                if (track ? track.paused : (!ctx || ctx.state !== 'running')) play();
+            // entrada: glissando de arpa tipo Disney + acorde brillante + polvo de estrellas
+            welcome() {
+                wanted = true;
+                paint();
+                withCtx(() => {
+                    const t = ctx.currentTime + 0.05;
+                    air(t, 1.0, 500, 3500, 0.03);
+                    const run = [62, 66, 69, 74, 78, 81, 86, 90, 93, 98];
+                    run.forEach((m, i) => chime(hz(m), t + i * 0.085, 0.05, (i / 9) * 1.2 - 0.6, 2.4));
+                    const end = t + run.length * 0.085;
+                    [74, 78, 81, 86].forEach((m, i) => glow(hz(m), end - 0.1, 3.2, 0.018, (i - 1.5) * 0.3));
+                    for (let k = 0; k < 9; k++) {
+                        chime(hz(PENTA[Math.floor(Math.random() * PENTA.length)] + 12), end + 0.2 + k * 0.17 + Math.random() * 0.1, 0.02 * (1 - k * 0.07), Math.random() * 1.6 - 0.8, 1.6);
+                    }
+                });
             },
+            // puerta: madera que cede + soplo + tintineo de brillo al abrirse
+            door() {
+                withCtx(() => {
+                    const t = ctx.currentTime + 0.02;
+                    const o = ctx.createOscillator();
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(70, t);
+                    o.frequency.linearRampToValueAtTime(118, t + 0.7);
+                    o.frequency.linearRampToValueAtTime(96, t + 1.2);
+                    const lp = ctx.createBiquadFilter();
+                    lp.type = 'lowpass';
+                    lp.frequency.value = 260;
+                    const g = ctx.createGain();
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.03, t + 0.3);
+                    g.gain.linearRampToValueAtTime(0, t + 1.25);
+                    o.connect(lp); lp.connect(g); out(g, 0);
+                    o.start(t);
+                    o.stop(t + 1.3);
+                    air(t + 0.1, 1.1, 300, 1400, 0.035);
+                    [86, 90, 93, 98].forEach((m, i) => chime(hz(m), t + 0.75 + i * 0.13, 0.04, (i - 1.5) * 0.35, 2));
+                    glow(hz(74), t + 0.7, 2.2, 0.014);
+                });
+            },
+            // cambio de sala: soplo suave
+            whoosh() {
+                withCtx(() => {
+                    const t = ctx.currentTime;
+                    air(t, 0.7, 600, 2600, 0.035);
+                    chime(hz(93), t + 0.3, 0.025, 0.3, 1.6);
+                });
+            },
+            // una joya que pasa: roce de seda y una nota de celesta
+            pass() {
+                withCtx(() => {
+                    const t = ctx.currentTime;
+                    air(t, 0.45, 900, 2400, 0.016, Math.random() * 0.8 - 0.4);
+                    const m = PENTA[Math.floor(Math.random() * PENTA.length)];
+                    chime(hz(m), t + 0.12, 0.035, Math.random() * 0.8 - 0.4, 1.5);
+                    chime(hz(m + 12), t + 0.2, 0.013, Math.random() * 0.8 - 0.4, 1.2);
+                });
+            },
+            stop() { wanted = false; },
+            kick() { if (wanted && !muted && ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
+            pause() { if (ctx && ctx.state === 'running') ctx.suspend(); },
+            resume() { if (wanted && !muted && ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
             toggle() {
                 muted = !muted;
                 try { localStorage.setItem('came-music', muted ? 'off' : 'on'); } catch (_) { /* sin almacenamiento */ }
                 paint();
-                if (muted) halt(); else play();
+                if (!muted) this.pass();   // pequeña muestra al activar el sonido
             },
-            pause() { if (track || (ctx && timer)) halt(); },
-            resume() { play(); },
+            watch(n) {   // llamada en cada cuadro: suena cuando pasa una joya
+                if (n !== lastPass) { lastPass = n; this.pass(); }
+            },
+            reset() { lastPass = 0; },
         };
-    })();
 
+        function paint() {
+            const b = $('boutiqueMusic');
+            b.setAttribute('aria-pressed', String(!muted));
+            b.setAttribute('aria-label', muted ? 'Activar sonidos' : 'Silenciar sonidos');
+        }
+    })();
     // ---------- Abrir / cerrar ----------
     async function open() {
-        music.start();
+        sfx.welcome();
         overlay.hidden = false;
         document.body.classList.add('in-boutique');
         document.body.style.overflow = 'hidden';
@@ -1061,7 +988,7 @@
     }
 
     function close() {
-        music.stop();
+        sfx.stop();
         if (raf) { cancelAnimationFrame(raf); raf = 0; }
         overlay.hidden = true;
         document.body.classList.remove('in-boutique');
@@ -1141,11 +1068,11 @@
         }
     });
 
-    $('boutiqueMusic').addEventListener('click', () => music.toggle());
-    overlay.addEventListener('pointerdown', () => music.kick());   // enlace directo: el navegador pide un toque antes de sonar
+    $('boutiqueMusic').addEventListener('click', () => sfx.toggle());
+    overlay.addEventListener('pointerdown', () => sfx.kick());   // enlace directo: el navegador pide un toque antes de sonar
     document.addEventListener('visibilitychange', () => {
         if (overlay.hidden) return;
-        if (document.hidden) music.pause(); else music.resume();
+        if (document.hidden) sfx.pause(); else sfx.resume();
     });
 
     window.addEventListener('resize', resize);
