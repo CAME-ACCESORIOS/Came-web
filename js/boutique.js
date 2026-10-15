@@ -836,25 +836,44 @@
     // ---------- Música ambiental ----------
     // Generada con Web Audio (sin archivos): acordes suaves en capas + campanitas tipo cajita de música.
     const music = (() => {
-        // Re lidio: acordes abiertos y brillantes, sin la "resolución" de un acorde clásico
-        const CHORDS = [
-            { bass: 73.42, notes: [146.83, 220.00, 277.18, 329.63, 369.99] },   // Dmaj9
-            { bass: 98.00, notes: [146.83, 185.00, 246.94, 277.18, 392.00] },   // Gmaj7#11
-            { bass: 110.00, notes: [164.81, 220.00, 246.94, 277.18, 329.63] },  // Amaj9
-            { bass: 123.47, notes: [185.00, 220.00, 293.66, 329.63, 369.99] },  // Bm11
+        // Vals de salón en Re mayor (3/4): bajo en el 1, acordes en el 2 y 3, arpa que fluye
+        // y una melodía de celesta propia. Todo se genera aquí, sin archivos de audio.
+        const BEAT = 0.4;                       // ≈150 pulsos por minuto: ligero y bailable
+        const BAR = BEAT * 3;
+        const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+        // [bajo, acorde] por compás (8 compases): D · Bm · Em · A7 · D · G · A · D
+        const BARS = [
+            { bass: 38, chord: [62, 66, 69] },
+            { bass: 47, chord: [62, 66, 71] },
+            { bass: 40, chord: [64, 67, 71] },
+            { bass: 45, chord: [61, 64, 67] },
+            { bass: 38, chord: [62, 66, 69] },
+            { bass: 43, chord: [59, 62, 67] },
+            { bass: 45, chord: [61, 64, 69] },
+            { bass: 38, chord: [62, 66, 69] },
         ];
-        const CHORD_LEN = 9;
+        // melodía: [pulso dentro del compás, nota MIDI, duración en pulsos]
+        const MELODY = [
+            [[0, 78, 1.5], [1.5, 76, 0.5], [2, 74, 1]],
+            [[0, 74, 1], [1, 78, 1], [2, 83, 1]],
+            [[0, 83, 1.5], [1.5, 81, 0.5], [2, 79, 1]],
+            [[0, 78, 1], [1, 76, 1], [2, 73, 1]],
+            [[0, 74, 1], [1, 78, 1], [2, 81, 1]],
+            [[0, 86, 1.5], [1.5, 83, 0.5], [2, 79, 1]],
+            [[0, 81, 1], [1, 78, 1], [2, 76, 1]],
+            [[0, 74, 3]],
+        ];
         let ctx = null, master = null, bus = null, timer = 0;
-        let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0, cur = CHORDS[0];
+        let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0, cur = BARS[0];
         let muted = false;
         try { muted = localStorage.getItem('came-music') === 'off'; } catch (_) { /* sin almacenamiento */ }
 
-        function impulse(secs) {   // reverberación de "catedral de cristal" hecha con ruido que se apaga
+        function impulse(secs) {   // reverberación de "salón de baile" hecha con ruido que se apaga
             const len = Math.floor(ctx.sampleRate * secs);
             const buf = ctx.createBuffer(2, len, ctx.sampleRate);
             for (let ch = 0; ch < 2; ch++) {
                 const d = buf.getChannelData(ch);
-                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
             }
             return buf;
         }
@@ -867,25 +886,16 @@
             master.gain.value = 0;
             const lp = ctx.createBiquadFilter();
             lp.type = 'lowpass';
-            lp.frequency.value = 5200;
+            lp.frequency.value = 5600;
             bus = ctx.createGain();
             const dry = ctx.createGain();
-            dry.gain.value = 0.7;
+            dry.gain.value = 0.85;
             const verb = ctx.createConvolver();
-            verb.buffer = impulse(4.2);
+            verb.buffer = impulse(2.6);
             const wet = ctx.createGain();
-            wet.gain.value = 1.1;
-            // eco que rebota, para el brillo
-            const delay = ctx.createDelay(1.5);
-            delay.delayTime.value = 0.46;
-            const fb = ctx.createGain();
-            fb.gain.value = 0.42;
-            const echo = ctx.createGain();
-            echo.gain.value = 0.45;
-            delay.connect(fb); fb.connect(delay);
+            wet.gain.value = 0.75;
             bus.connect(dry); dry.connect(lp);
             bus.connect(verb); verb.connect(wet); wet.connect(lp);
-            bus.connect(delay); delay.connect(echo); echo.connect(verb); echo.connect(lp);
             lp.connect(master);
             master.connect(ctx.destination);
             return true;
@@ -899,37 +909,15 @@
             } else node.connect(bus);
         }
 
-        // colchón de sonido que "respira": notas largas con entrada lentísima + un velo agudo
-        function pad(chord, t0) {
-            const layers = [[chord.bass, 0.05, 'sine', 0], ...chord.notes.map((f, i) => [f, 0.017, i % 2 ? 'sine' : 'triangle', (i - 2) * 0.35]),
-                ...chord.notes.slice(1, 4).map((f, i) => [f * 2, 0.007, 'sine', (i - 1) * 0.8])];
-            layers.forEach(([f, amp, type, pan]) => {
-                [-6, 6].forEach(cents => {
-                    const o = ctx.createOscillator();
-                    o.type = type;
-                    o.frequency.value = f;
-                    o.detune.value = cents;
-                    const g = ctx.createGain();
-                    g.gain.setValueAtTime(0, t0);
-                    g.gain.linearRampToValueAtTime(amp, t0 + 3.5);
-                    g.gain.linearRampToValueAtTime(amp, t0 + CHORD_LEN - 0.5);
-                    g.gain.linearRampToValueAtTime(0, t0 + CHORD_LEN + 4);
-                    o.connect(g); out(g, pan);
-                    o.start(t0);
-                    o.stop(t0 + CHORD_LEN + 4.2);
-                });
-            });
-        }
-
-        // nota de arpa / celesta: ataque instantáneo y larga cola
-        function pluck(freq, t0, vel, pan, len = 2.6) {
+        // nota de arpa / celesta: ataque instantáneo y cola que se apaga
+        function pluck(freq, t0, vel, pan, len = 1.6) {
             [[1, 1, 'triangle'], [2, 0.3, 'sine'], [3.01, 0.08, 'sine']].forEach(([mult, k, type]) => {
                 const o = ctx.createOscillator();
                 o.type = type;
                 o.frequency.value = freq * mult;
                 const g = ctx.createGain();
                 g.gain.setValueAtTime(0, t0);
-                g.gain.linearRampToValueAtTime(vel * k, t0 + 0.012);
+                g.gain.linearRampToValueAtTime(vel * k, t0 + 0.01);
                 g.gain.exponentialRampToValueAtTime(0.0001, t0 + len / (mult > 1 ? 1.6 : 1));
                 o.connect(g); out(g, pan);
                 o.start(t0);
@@ -937,13 +925,41 @@
             });
         }
 
-        // arpegio ascendente o descendente que cruza las notas del acorde en dos octavas
-        function arpeggio(chord, t0, up, vel) {
-            const pool = [...chord.notes, ...chord.notes.map(f => f * 2)].sort((a, b) => a - b).slice(0, 8);
-            if (!up) pool.reverse();
-            pool.forEach((f, i) => {
-                if (Math.random() < 0.15) return;   // alguna nota se salta: suena humano
-                pluck(f, t0 + i * (0.3 + Math.random() * 0.06), vel * (0.8 + Math.random() * 0.4), Math.sin(i * 0.9) * 0.6);
+        // cuerdas suaves que acompañan: entran y salen dentro del compás
+        function swell(freq, t0, len, amp, pan) {
+            [-5, 5].forEach(cents => {
+                const o = ctx.createOscillator();
+                o.type = 'triangle';
+                o.frequency.value = freq;
+                o.detune.value = cents;
+                const g = ctx.createGain();
+                g.gain.setValueAtTime(0, t0);
+                g.gain.linearRampToValueAtTime(amp, t0 + len * 0.4);
+                g.gain.linearRampToValueAtTime(0, t0 + len * 1.15);
+                o.connect(g); out(g, pan);
+                o.start(t0);
+                o.stop(t0 + len * 1.2);
+            });
+        }
+
+        function playBar(t0, n) {
+            const bar = BARS[n % 8];
+            const cycle = Math.floor(n / 8);
+            cur = bar;
+            // bajo en el 1 (con acento) y acordes ligeros en el 2 y el 3
+            pluck(hz(bar.bass), t0, 0.1, -0.2, 0.9);
+            pluck(hz(bar.bass + 12), t0, 0.03, -0.2, 0.7);
+            [1, 2].forEach(b => bar.chord.forEach((m, i) => pluck(hz(m), t0 + b * BEAT, 0.02, (i - 1) * 0.3, 0.45)));
+            bar.chord.forEach((m, i) => swell(hz(m), t0, BAR, 0.01, (i - 1) * 0.4));
+            // arpa: seis corcheas que suben y bajan por el acorde
+            const [a, b, c] = bar.chord.map(m => m + 12);
+            [a, b, c, a + 12, c, b].forEach((m, i) => {
+                pluck(hz(m), t0 + i * BEAT / 2, 0.026, Math.sin(i + n) * 0.5, 1.1);
+            });
+            // melodía de celesta; en los ciclos impares los 4 primeros compases suben una octava
+            const lift = cycle % 2 && n % 8 < 4 ? 12 : 0;
+            MELODY[n % 8].forEach(([beat, m, len]) => {
+                pluck(hz(m + lift), t0 + beat * BEAT, 0.075, 0.15, 0.7 + len * BEAT * 1.4);
             });
         }
 
@@ -951,17 +967,14 @@
             if (!ctx || ctx.state !== 'running') return;
             const now = ctx.currentTime;
             while (nextChord < now + 1.5) {
-                cur = CHORDS[chordIdx % CHORDS.length];
-                pad(cur, nextChord);
-                arpeggio(cur, nextChord + 0.8, true, 0.05);
-                if (chordIdx % 2) arpeggio(cur, nextChord + 5, false, 0.035);
+                playBar(nextChord, chordIdx);
                 chordIdx++;
-                nextChord += CHORD_LEN;
+                nextChord += BAR;
             }
-            while (nextBell < now + 1.5) {   // destellos agudos sueltos, como polvo de estrellas
-                const f = cur.notes[Math.floor(Math.random() * cur.notes.length)] * (Math.random() < 0.5 ? 4 : 8);
-                pluck(f, nextBell, 0.02, Math.random() * 1.6 - 0.8, 3.2);
-                nextBell += 0.7 + Math.random() * 2.2;
+            while (nextBell < now + 1.5) {   // destellos agudos sueltos, como polvo de hadas
+                const m = cur.chord[Math.floor(Math.random() * cur.chord.length)] + 36;
+                pluck(hz(m), nextBell, 0.014, Math.random() * 1.6 - 0.8, 1.8);
+                nextBell += 0.9 + Math.random() * 2;
             }
         }
         function fadeTo(v, secs) {
