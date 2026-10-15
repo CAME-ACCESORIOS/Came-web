@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAME | Joyería Romántica y Sofisticada</title>
     <meta name="description" content="Joyería fina y elegante para la mujer panameña moderna.">
-    <!-- Vista previa al compartir por WhatsApp (falta og:image cuando tengamos el dominio final) -->
-    <meta property="og:title" content="CAME | Entra a nuestra boutique virtual">
-    <meta property="og:description" content="Recorre la colección CAME en 3D. Diseñada para brillar contigo.">
+    <!-- Vista previa al compartir por WhatsApp (la imagen debe tener URL absoluta; si cambia el dominio, actualizar aquí) -->
+    <meta property="og:title" content="CAME | Entra a nuestra boutique virtual ✨">
+    <meta property="og:description" content="Abre las puertas y recorre la colección CAME en 3D. Joyas únicas, hechas para brillar contigo.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://came-accesorios.github.io/Came-web/">
+    <meta property="og:image" content="https://came-accesorios.github.io/Came-web/Imagenes/web/og-came.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,11 +151,13 @@
         <div class="boutique-top">
             <span class="boutique-room" id="boutiqueRoom">Elige tu puerta</span>
             <div class="boutique-top-actions">
+                <button class="boutique-pill boutique-music" id="boutiqueMusic" type="button" aria-label="Silenciar música" aria-pressed="true">♪</button>
                 <button class="boutique-pill" id="boutiqueCatalog" type="button">Ver catálogo</button>
                 <button class="boutique-pill boutique-close" id="boutiqueClose" type="button" aria-label="Salir de la boutique">&times;</button>
             </div>
         </div>
         <p class="boutique-hint" id="boutiqueHint"></p>
+        <a class="boutique-cta" id="boutiqueCta" href="#" target="_blank" rel="noopener" hidden></a>
         <div class="boutique-bottom">
             <div class="boutique-nav" id="boutiqueNav"></div>
             <div class="boutique-progress"><span id="boutiqueBar"></span></div>
