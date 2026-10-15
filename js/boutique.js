@@ -205,7 +205,7 @@
         );
     }
 
-    function makePlaque(name, price) {
+    function makePlaque(name, price, material) {
         const tex = canvasTexture(512, 160, (ctx, w, h) => {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
             roundRect(ctx, 4, 4, w - 8, h - 8, 14);
@@ -216,11 +216,14 @@
             ctx.stroke();
             ctx.textAlign = 'center';
             ctx.fillStyle = '#6B1A33';
-            ctx.font = 'italic 400 52px "Cormorant Garamond", serif';
-            ctx.fillText(name, w / 2, 76);
+            ctx.font = 'italic 400 46px "Cormorant Garamond", serif';
+            ctx.fillText(name, w / 2, 62);
             ctx.fillStyle = '#A66A7D';
-            ctx.font = '400 28px Montserrat, sans-serif';
-            ctx.fillText(price, w / 2, 124);
+            ctx.font = '400 26px Montserrat, sans-serif';
+            ctx.fillText(price, w / 2, 102);
+            ctx.fillStyle = '#B89553';
+            ctx.font = '400 19px Montserrat, sans-serif';
+            ctx.fillText(material, w / 2, 138);
         });
         return new THREE.Mesh(
             new THREE.PlaneGeometry(1.4, 0.4375),
@@ -472,7 +475,7 @@
         pic.position.z = 0.058;
         pic.userData.productIndex = products.indexOf(product);
 
-        const plaque = makePlaque(product.name, product.sold ? 'SOLD OUT · pieza única' : formatPrice(product.price));
+        const plaque = makePlaque(product.name, product.sold ? 'SOLD OUT · pieza única' : formatPrice(product.price), product.material);
         plaque.position.z = 0.03;
 
         function fit(aspect) {

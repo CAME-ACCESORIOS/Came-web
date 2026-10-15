@@ -4,14 +4,16 @@ const WHATSAPP = '50762721611';
 // Pieza vendida (son únicas): agregar ' SOLD OUT' al final del nombre de la foto y de la lista, ej. 'Set azul SOLD OUT'.
 // Precio propio de una pieza: agregar '=precio' al final en la lista, ej. 'Set de corazon-plata 925=45' (la foto sigue llamándose sin el '=45').
 // Si no lleva '=precio', usa el 'price' de la categoría.
+// Material: todas las piezas son 'Acabado en rodio y baño de oro 18k' salvo que la categoría tenga su propio 'material' (ej. Plata 925).
 // 'cover' es la foto que se ve detrás de la puerta de la boutique (mejor una de producto o de cuello/oreja bien centrada).
 // Las piezas más recientes (las del final de la lista) se muestran primero en el catálogo y en la boutique.
+const DEFAULT_MATERIAL = 'Acabado en rodio y baño de oro 18k';
 const CATEGORIES = [
     { name: 'Collares', cover: 'Collar corazon dorado', price: 20, item: 'el collar', ask: 'pedirlo', items: ['Collar corazon dorado=18', 'Collar gota de agua=10', 'Collar mini corazon=10', 'Collar con dije de honguito=18', 'Collar con dije de pajarito=18'] },
     { name: 'Aretes', cover: 'Aretes moño rosa 2', price: 10, item: 'los aretes', ask: 'pedirlos', items: ['MariCristal=12', 'Aretes azulado=10', 'Aretes azulado2=10', 'Aretes corazon pasion=10', 'Aretes corazon=10', 'Aretes elefante dorado=10', 'Aretes luna=8', 'Aretes moño rosa=10', 'Aretes moño rosa 2=10', 'Aretes perla cuadrada=10', 'Aretes circulares dorada=10', 'Aretes cristal lilas=12', 'Aretes cuadrados=8', 'Aretes de moñito perlado=12', 'Aretes de perla=10', 'Aretes flor=12', 'Aretes tortuga celeste=8', 'Aretes tortuga negro=8', 'Aretes libelula=12', 'Aretes piedra celeste=8', 'Aretes circulo celeste=8', 'Aretes circular verdes=8', 'Aretes corazon piedritas negras=10', 'Aretes flor celeste=15', 'Aretes flor crema=15', 'Aretes flor plateada=15', 'Aretes flor dorada=15', 'Aretes corazon mini plateado=10', 'Aretes piedra color esmeralda=12', 'Aretes perla colgante=12', 'Aretes de corazon tejido=8'] },
     { name: 'Pulseras', cover: 'Pulsera trebol marino', price: 18, item: 'la pulsera', ask: 'pedirla', items: ['Pulsera dijes de mar=15', 'Pulsera trebol marino=15', 'Pulsera de bolitas doradas=8', 'Pulsera de corazones=8', 'Pulsera de MAMA=8', 'Pulsera sencilla azul=8', 'Pulsera tejida con bolitas=12', 'Pulsera treanzada=12'] },
     { name: 'Sets', cover: 'Set concha de caracol', price: 28, item: 'el set', ask: 'pedirlo', items: ['Set azul=12', 'Set concha de caracol=20', 'Set dijes de mar=25', 'Set flor dorada SOLD OUT', 'Set perlado=20', 'Collar concha y perla=20', 'Collar mar-caracol=20', 'Set corazon rojo=18', 'Set circular dorado=20', 'Set conchitas de mar=20', 'Set hoja dorada=18', 'Set flor esmeralda=18', 'Set tejido virgen=28', 'Set piedras y cruz=25', 'Set petalos de cristal=20', 'Set petalos de cristal2=20', 'Set cadena con dije de virgen=25', 'Set corazon oscuro=18', 'Set de mariposa=20'] },
-    { name: 'Plata 925', cover: 'Set de corazon-plata 925', price: 40, item: 'el set', ask: 'pedirlo', items: ['Set de corazon-plata 925=58'] },
+    { name: 'Plata 925', cover: 'Set de corazon-plata 925', price: 40, material: 'Plata 925', item: 'el set', ask: 'pedirlo', items: ['Set de corazon-plata 925=58'] },
 ];
 
 const SOLD_RE = /\s*SOLD OUT$/i;
@@ -23,6 +25,7 @@ const products = CATEGORIES.flatMap(c => [...c.items].reverse().map(file => {
         name,
         category: c.name,
         price: own ? parseFloat(own) : c.price,
+        material: c.material || DEFAULT_MATERIAL,
         sold: SOLD_RE.test(base),
         img: `Imagenes/web/${c.name}/${base}.jpg`,
         wa: `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hola, me encantó ${c.item} ${name} y quiero ${c.ask}`)}`,
@@ -59,6 +62,7 @@ function renderProducts(filter = 'all') {
             </button>
             <div class="product-info">
                 <h4>${p.name}</h4>
+                <p class="material">${p.material}</p>
                 <p class="price">${p.sold ? 'SOLD OUT · pieza única' : formatPrice(p.price)}</p>
                 ${p.sold ? '' : `<a class="buy-link" href="${p.wa}" target="_blank" rel="noopener">Pedir por WhatsApp</a>`}
             </div>
@@ -81,6 +85,7 @@ function renderLightbox() {
     img.alt = `${p.category}: ${p.name}`;
     if (img.complete) img.style.opacity = 1;
     $('lightboxName').textContent = p.name;
+    $('lightboxMaterial').textContent = p.material;
     $('lightboxPrice').textContent = p.sold ? 'SOLD OUT · pieza única' : formatPrice(p.price);
     $('lightboxBuy').href = p.wa;
     $('lightboxBuy').hidden = p.sold;

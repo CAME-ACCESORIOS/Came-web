@@ -927,3 +927,10 @@ a {
     .boutique-loading { transition: opacity 0.4s ease; }
     .boutique-loading.leaving { transform: none; }
 }
+
+.product-info .material, .lightbox-material {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    margin: 2px 0 4px;
+}
