@@ -836,44 +836,44 @@
     // ---------- Música ambiental ----------
     // Generada con Web Audio (sin archivos): acordes suaves en capas + campanitas tipo cajita de música.
     const music = (() => {
-        // Vals de salón en Re mayor (3/4): bajo en el 1, acordes en el 2 y 3, arpa que fluye
-        // y una melodía de celesta propia. Todo se genera aquí, sin archivos de audio.
-        const BEAT = 0.4;                       // ≈150 pulsos por minuto: ligero y bailable
+        // Vals romántico en Re mayor (3/4): bajo suave, acordes en el 2 y 3, arpa que fluye,
+        // cuerdas y una melodía cantada con celesta. Todo se genera aquí, sin archivos de audio.
+        const BEAT = 0.55;                      // ≈110 pulsos por minuto: un vals lento y enamorado
         const BAR = BEAT * 3;
         const hz = m => 440 * Math.pow(2, (m - 69) / 12);
-        // [bajo, acorde] por compás (8 compases): D · Bm · Em · A7 · D · G · A · D
+        // 16 compases: A = D · Bm · Em · A7 · D · G · A · D   B = Bm · G · D/F# · Em · A · Bm · G · A7
         const BARS = [
-            { bass: 38, chord: [62, 66, 69] },
-            { bass: 47, chord: [62, 66, 71] },
-            { bass: 40, chord: [64, 67, 71] },
-            { bass: 45, chord: [61, 64, 67] },
-            { bass: 38, chord: [62, 66, 69] },
-            { bass: 43, chord: [59, 62, 67] },
-            { bass: 45, chord: [61, 64, 69] },
-            { bass: 38, chord: [62, 66, 69] },
+            { bass: 38, chord: [62, 66, 69] }, { bass: 47, chord: [62, 66, 71] },
+            { bass: 40, chord: [64, 67, 71] }, { bass: 45, chord: [61, 64, 67] },
+            { bass: 38, chord: [62, 66, 69] }, { bass: 43, chord: [59, 62, 67] },
+            { bass: 45, chord: [61, 64, 69] }, { bass: 38, chord: [62, 66, 69] },
+            { bass: 47, chord: [62, 66, 71] }, { bass: 43, chord: [59, 62, 67] },
+            { bass: 42, chord: [62, 66, 69] }, { bass: 40, chord: [59, 64, 67] },
+            { bass: 45, chord: [61, 64, 69] }, { bass: 47, chord: [62, 66, 71] },
+            { bass: 43, chord: [59, 62, 67] }, { bass: 45, chord: [61, 64, 67] },
         ];
         // melodía: [pulso dentro del compás, nota MIDI, duración en pulsos]
         const MELODY = [
-            [[0, 78, 1.5], [1.5, 76, 0.5], [2, 74, 1]],
-            [[0, 74, 1], [1, 78, 1], [2, 83, 1]],
-            [[0, 83, 1.5], [1.5, 81, 0.5], [2, 79, 1]],
-            [[0, 78, 1], [1, 76, 1], [2, 73, 1]],
-            [[0, 74, 1], [1, 78, 1], [2, 81, 1]],
-            [[0, 86, 1.5], [1.5, 83, 0.5], [2, 79, 1]],
-            [[0, 81, 1], [1, 78, 1], [2, 76, 1]],
-            [[0, 74, 3]],
+            [[0, 78, 2], [2, 76, 1]], [[0, 74, 1.5], [1.5, 76, 0.5], [2, 78, 1]],
+            [[0, 79, 2], [2, 78, 1]], [[0, 76, 2], [2, 73, 1]],
+            [[0, 74, 1], [1, 78, 1], [2, 81, 1]], [[0, 83, 2], [2, 81, 1]],
+            [[0, 81, 1], [1, 78, 1], [2, 76, 1]], [[0, 74, 3]],
+            [[0, 78, 2], [2, 79, 1]], [[0, 83, 2], [2, 81, 1]],
+            [[0, 81, 1.5], [1.5, 78, 0.5], [2, 74, 1]], [[0, 76, 2], [2, 79, 1]],
+            [[0, 81, 2], [2, 85, 1]], [[0, 86, 1.5], [1.5, 85, 0.5], [2, 83, 1]],
+            [[0, 81, 1], [1, 79, 1], [2, 78, 1]], [[0, 76, 3]],
         ];
         let ctx = null, master = null, bus = null, timer = 0;
         let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0, cur = BARS[0];
         let muted = false;
         try { muted = localStorage.getItem('came-music') === 'off'; } catch (_) { /* sin almacenamiento */ }
 
-        function impulse(secs) {   // reverberación de "salón de baile" hecha con ruido que se apaga
+        function impulse(secs) {   // reverberación de salón hecha con ruido que se apaga
             const len = Math.floor(ctx.sampleRate * secs);
             const buf = ctx.createBuffer(2, len, ctx.sampleRate);
             for (let ch = 0; ch < 2; ch++) {
                 const d = buf.getChannelData(ch);
-                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
             }
             return buf;
         }
@@ -886,14 +886,14 @@
             master.gain.value = 0;
             const lp = ctx.createBiquadFilter();
             lp.type = 'lowpass';
-            lp.frequency.value = 5600;
+            lp.frequency.value = 4200;   // más cálido y suave
             bus = ctx.createGain();
             const dry = ctx.createGain();
-            dry.gain.value = 0.85;
+            dry.gain.value = 0.8;
             const verb = ctx.createConvolver();
-            verb.buffer = impulse(2.6);
+            verb.buffer = impulse(3.2);
             const wet = ctx.createGain();
-            wet.gain.value = 0.75;
+            wet.gain.value = 0.95;
             bus.connect(dry); dry.connect(lp);
             bus.connect(verb); verb.connect(wet); wet.connect(lp);
             lp.connect(master);
@@ -942,24 +942,59 @@
             });
         }
 
+        // voz principal: nota sostenida con vibrato suave, como un violín o una voz
+        function sing(freq, t0, len, amp, pan) {
+            const o = ctx.createOscillator();
+            const o2 = ctx.createOscillator();
+            o.type = 'sine';
+            o2.type = 'triangle';
+            o.frequency.value = o2.frequency.value = freq;
+            const lfo = ctx.createOscillator();
+            lfo.frequency.value = 5.2;
+            const depth = ctx.createGain();
+            depth.gain.setValueAtTime(0, t0);
+            depth.gain.linearRampToValueAtTime(7, t0 + Math.min(0.5, len));
+            lfo.connect(depth); depth.connect(o.detune); depth.connect(o2.detune);
+            const g = ctx.createGain();
+            const end = t0 + len;
+            g.gain.setValueAtTime(0, t0);
+            g.gain.linearRampToValueAtTime(amp, t0 + 0.09);
+            g.gain.setValueAtTime(amp * 0.85, end - 0.05);
+            g.gain.linearRampToValueAtTime(0, end + 0.45);
+            const mix = ctx.createGain();
+            mix.gain.value = 0.45;
+            o.connect(g); o2.connect(mix); mix.connect(g);
+            out(g, pan);
+            [o, o2, lfo].forEach(n => { n.start(t0); n.stop(end + 0.5); });
+        }
+
+        // arpegio de apertura: una escala de arpa que sube, como abrir un telón
+        function flourish(t0) {
+            [62, 66, 69, 74, 78, 81, 86, 90, 93].forEach((m, i) => {
+                pluck(hz(m), t0 + i * 0.1, 0.045 * (1 - i * 0.04), (i / 8) * 1.2 - 0.6, 2.4);
+            });
+        }
+
         function playBar(t0, n) {
-            const bar = BARS[n % 8];
-            const cycle = Math.floor(n / 8);
+            const idx = n % 16;
+            const bar = BARS[idx];
+            const cycle = Math.floor(n / 16);
             cur = bar;
-            // bajo en el 1 (con acento) y acordes ligeros en el 2 y el 3
-            pluck(hz(bar.bass), t0, 0.1, -0.2, 0.9);
-            pluck(hz(bar.bass + 12), t0, 0.03, -0.2, 0.7);
-            [1, 2].forEach(b => bar.chord.forEach((m, i) => pluck(hz(m), t0 + b * BEAT, 0.02, (i - 1) * 0.3, 0.45)));
-            bar.chord.forEach((m, i) => swell(hz(m), t0, BAR, 0.01, (i - 1) * 0.4));
+            // bajo suave en el 1 y acordes ligeros en el 2 y el 3
+            pluck(hz(bar.bass), t0, 0.09, -0.2, 1.3);
+            [1, 2].forEach(b => bar.chord.forEach((m, i) => pluck(hz(m), t0 + b * BEAT, 0.016, (i - 1) * 0.3, 0.6)));
+            bar.chord.forEach((m, i) => swell(hz(m), t0, BAR, 0.012, (i - 1) * 0.4));
             // arpa: seis corcheas que suben y bajan por el acorde
             const [a, b, c] = bar.chord.map(m => m + 12);
             [a, b, c, a + 12, c, b].forEach((m, i) => {
-                pluck(hz(m), t0 + i * BEAT / 2, 0.026, Math.sin(i + n) * 0.5, 1.1);
+                pluck(hz(m), t0 + i * BEAT / 2, 0.022, Math.sin(i + n) * 0.5, 1.4);
             });
-            // melodía de celesta; en los ciclos impares los 4 primeros compases suben una octava
-            const lift = cycle % 2 && n % 8 < 4 ? 12 : 0;
-            MELODY[n % 8].forEach(([beat, m, len]) => {
-                pluck(hz(m + lift), t0 + beat * BEAT, 0.075, 0.15, 0.7 + len * BEAT * 1.4);
+            // melodía cantada, con celesta que la acompaña (una octava arriba en las vueltas impares)
+            const lift = cycle % 2 && idx < 4 ? 12 : 0;
+            MELODY[idx].forEach(([beat, m, len]) => {
+                const t = t0 + beat * BEAT, d = len * BEAT;
+                sing(hz(m), t, d * 0.97, 0.05, 0.1);
+                pluck(hz(m + 12 + lift), t, 0.03, 0.2, 0.8 + d);
             });
         }
 
@@ -973,8 +1008,8 @@
             }
             while (nextBell < now + 1.5) {   // destellos agudos sueltos, como polvo de hadas
                 const m = cur.chord[Math.floor(Math.random() * cur.chord.length)] + 36;
-                pluck(hz(m), nextBell, 0.014, Math.random() * 1.6 - 0.8, 1.8);
-                nextBell += 0.9 + Math.random() * 2;
+                pluck(hz(m), nextBell, 0.012, Math.random() * 1.6 - 0.8, 2);
+                nextBell += 1.1 + Math.random() * 2.2;
             }
         }
         function fadeTo(v, secs) {
@@ -991,11 +1026,14 @@
             const go = () => {
                 if (!wanted || muted || ctx.state !== 'running') return;
                 if (!timer) {
-                    nextChord = nextBell = ctx.currentTime + 0.1;
+                    nextChord = ctx.currentTime + 1.0;      // el arpegio de apertura suena primero
+                    nextBell = nextChord + BAR;
+                    chordIdx = 0;
+                    flourish(ctx.currentTime + 0.05);
                     timer = setInterval(tick, 400);
                     tick();
                 }
-                fadeTo(0.9, 4);
+                fadeTo(0.9, 1.2);
             };
             if (ctx.state === 'running') go();
             else ctx.resume().then(go).catch(() => { /* el navegador exige un toque primero */ });
