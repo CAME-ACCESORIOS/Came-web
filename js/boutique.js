@@ -862,18 +862,15 @@
         }
 
         return {
-            // entrada: arpa suave que sube por un acorde de Re, se abre en un brillo cálido
-            // y deja caer tres destellos. Notas fijas (nada al azar) para que suene limpio.
+            // entrada: un solo tintineo suave, con un brillo cálido debajo que se apaga despacio
             welcome() {
                 wanted = true;
                 paint();
                 withCtx(() => {
-                    const t = ctx.currentTime + 0.08;
-                    const run = [62, 66, 69, 74, 78, 81, 86];
-                    run.forEach((m, i) => chime(hz(m), t + i * 0.12, 0.05 - i * 0.003, -0.4 + i * 0.13, 2.6, 0.35));
-                    const top = t + run.length * 0.12;
-                    [74, 78, 81, 86].forEach((m, i) => glow(hz(m), top - 0.15, 3.4, 0.016, (i - 1.5) * 0.25));
-                    [93, 90, 86].forEach((m, i) => chime(hz(m), top + 0.25 + i * 0.22, 0.02 - i * 0.004, 0.35 - i * 0.35, 2, 0.3));
+                    const t = ctx.currentTime + 0.05;
+                    chime(hz(86), t, 0.04, 0, 3, 0.2);          // Re agudo, casi puro
+                    glow(hz(74), t, 3, 0.012);                  // Re una octava abajo, como un halo
+                    glow(hz(81), t + 0.05, 3, 0.008);           // La, para darle calidez
                 });
             },            // puerta: madera que cede + soplo + tintineo de brillo al abrirse
             door() {
