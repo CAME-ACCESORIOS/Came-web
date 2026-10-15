@@ -836,18 +836,28 @@
     // ---------- Música ambiental ----------
     // Generada con Web Audio (sin archivos): acordes suaves en capas + campanitas tipo cajita de música.
     const music = (() => {
+        // Re lidio: acordes abiertos y brillantes, sin la "resolución" de un acorde clásico
         const CHORDS = [
-            [130.81, 196.00, 246.94, 329.63],   // Do maj7
-            [110.00, 164.81, 261.63, 329.63],   // La m7
-            [87.31, 130.81, 220.00, 261.63],    // Fa maj7
-            [98.00, 146.83, 246.94, 293.66],    // Sol
+            { bass: 73.42, notes: [146.83, 220.00, 277.18, 329.63, 369.99] },   // Dmaj9
+            { bass: 98.00, notes: [146.83, 185.00, 246.94, 277.18, 392.00] },   // Gmaj7#11
+            { bass: 110.00, notes: [164.81, 220.00, 246.94, 277.18, 329.63] },  // Amaj9
+            { bass: 123.47, notes: [185.00, 220.00, 293.66, 329.63, 369.99] },  // Bm11
         ];
-        const BELLS = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
-        const CHORD_LEN = 8;
+        const CHORD_LEN = 9;
         let ctx = null, master = null, bus = null, timer = 0;
-        let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0;
+        let wanted = false, chordIdx = 0, nextChord = 0, nextBell = 0, cur = CHORDS[0];
         let muted = false;
         try { muted = localStorage.getItem('came-music') === 'off'; } catch (_) { /* sin almacenamiento */ }
+
+        function impulse(secs) {   // reverberación de "catedral de cristal" hecha con ruido que se apaga
+            const len = Math.floor(ctx.sampleRate * secs);
+            const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+            for (let ch = 0; ch < 2; ch++) {
+                const d = buf.getChannelData(ch);
+                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+            }
+            return buf;
+        }
 
         function init() {
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -857,54 +867,83 @@
             master.gain.value = 0;
             const lp = ctx.createBiquadFilter();
             lp.type = 'lowpass';
-            lp.frequency.value = 2200;
+            lp.frequency.value = 5200;
             bus = ctx.createGain();
-            // eco suave para las campanitas
-            const delay = ctx.createDelay(1.5);
-            delay.delayTime.value = 0.42;
-            const fb = ctx.createGain();
-            fb.gain.value = 0.38;
+            const dry = ctx.createGain();
+            dry.gain.value = 0.7;
+            const verb = ctx.createConvolver();
+            verb.buffer = impulse(4.2);
             const wet = ctx.createGain();
-            wet.gain.value = 0.5;
+            wet.gain.value = 1.1;
+            // eco que rebota, para el brillo
+            const delay = ctx.createDelay(1.5);
+            delay.delayTime.value = 0.46;
+            const fb = ctx.createGain();
+            fb.gain.value = 0.42;
+            const echo = ctx.createGain();
+            echo.gain.value = 0.45;
             delay.connect(fb); fb.connect(delay);
-            bus.connect(lp);
-            bus.connect(delay); delay.connect(wet); wet.connect(lp);
+            bus.connect(dry); dry.connect(lp);
+            bus.connect(verb); verb.connect(wet); wet.connect(lp);
+            bus.connect(delay); delay.connect(echo); echo.connect(verb); echo.connect(lp);
             lp.connect(master);
             master.connect(ctx.destination);
             return true;
         }
 
-        function pad(freqs, t0) {
-            freqs.forEach((f, i) => {
-                [-4, 4].forEach(cents => {
+        function out(node, pan) {
+            if (ctx.createStereoPanner) {
+                const p = ctx.createStereoPanner();
+                p.pan.value = pan;
+                node.connect(p); p.connect(bus);
+            } else node.connect(bus);
+        }
+
+        // colchón de sonido que "respira": notas largas con entrada lentísima + un velo agudo
+        function pad(chord, t0) {
+            const layers = [[chord.bass, 0.05, 'sine', 0], ...chord.notes.map((f, i) => [f, 0.017, i % 2 ? 'sine' : 'triangle', (i - 2) * 0.35]),
+                ...chord.notes.slice(1, 4).map((f, i) => [f * 2, 0.007, 'sine', (i - 1) * 0.8])];
+            layers.forEach(([f, amp, type, pan]) => {
+                [-6, 6].forEach(cents => {
                     const o = ctx.createOscillator();
-                    o.type = i === 0 ? 'sine' : 'triangle';
+                    o.type = type;
                     o.frequency.value = f;
                     o.detune.value = cents;
                     const g = ctx.createGain();
                     g.gain.setValueAtTime(0, t0);
-                    g.gain.linearRampToValueAtTime(0.022, t0 + 3);
-                    g.gain.linearRampToValueAtTime(0.022, t0 + CHORD_LEN - 0.5);
-                    g.gain.linearRampToValueAtTime(0, t0 + CHORD_LEN + 3);
-                    o.connect(g); g.connect(bus);
+                    g.gain.linearRampToValueAtTime(amp, t0 + 3.5);
+                    g.gain.linearRampToValueAtTime(amp, t0 + CHORD_LEN - 0.5);
+                    g.gain.linearRampToValueAtTime(0, t0 + CHORD_LEN + 4);
+                    o.connect(g); out(g, pan);
                     o.start(t0);
-                    o.stop(t0 + CHORD_LEN + 3.2);
+                    o.stop(t0 + CHORD_LEN + 4.2);
                 });
             });
         }
 
-        function bell(freq, t0) {
-            [[1, 0.05], [2.76, 0.012]].forEach(([mult, amp]) => {
+        // nota de arpa / celesta: ataque instantáneo y larga cola
+        function pluck(freq, t0, vel, pan, len = 2.6) {
+            [[1, 1, 'triangle'], [2, 0.3, 'sine'], [3.01, 0.08, 'sine']].forEach(([mult, k, type]) => {
                 const o = ctx.createOscillator();
-                o.type = 'sine';
+                o.type = type;
                 o.frequency.value = freq * mult;
                 const g = ctx.createGain();
                 g.gain.setValueAtTime(0, t0);
-                g.gain.linearRampToValueAtTime(amp, t0 + 0.02);
-                g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.6);
-                o.connect(g); g.connect(bus);
+                g.gain.linearRampToValueAtTime(vel * k, t0 + 0.012);
+                g.gain.exponentialRampToValueAtTime(0.0001, t0 + len / (mult > 1 ? 1.6 : 1));
+                o.connect(g); out(g, pan);
                 o.start(t0);
-                o.stop(t0 + 2.8);
+                o.stop(t0 + len + 0.1);
+            });
+        }
+
+        // arpegio ascendente o descendente que cruza las notas del acorde en dos octavas
+        function arpeggio(chord, t0, up, vel) {
+            const pool = [...chord.notes, ...chord.notes.map(f => f * 2)].sort((a, b) => a - b).slice(0, 8);
+            if (!up) pool.reverse();
+            pool.forEach((f, i) => {
+                if (Math.random() < 0.15) return;   // alguna nota se salta: suena humano
+                pluck(f, t0 + i * (0.3 + Math.random() * 0.06), vel * (0.8 + Math.random() * 0.4), Math.sin(i * 0.9) * 0.6);
             });
         }
 
@@ -912,16 +951,19 @@
             if (!ctx || ctx.state !== 'running') return;
             const now = ctx.currentTime;
             while (nextChord < now + 1.5) {
-                pad(CHORDS[chordIdx % CHORDS.length], nextChord);
+                cur = CHORDS[chordIdx % CHORDS.length];
+                pad(cur, nextChord);
+                arpeggio(cur, nextChord + 0.8, true, 0.05);
+                if (chordIdx % 2) arpeggio(cur, nextChord + 5, false, 0.035);
                 chordIdx++;
                 nextChord += CHORD_LEN;
             }
-            while (nextBell < now + 1.5) {
-                bell(BELLS[Math.floor(Math.random() * BELLS.length)], nextBell);
-                nextBell += 1.8 + Math.random() * 2.6;
+            while (nextBell < now + 1.5) {   // destellos agudos sueltos, como polvo de estrellas
+                const f = cur.notes[Math.floor(Math.random() * cur.notes.length)] * (Math.random() < 0.5 ? 4 : 8);
+                pluck(f, nextBell, 0.02, Math.random() * 1.6 - 0.8, 3.2);
+                nextBell += 0.7 + Math.random() * 2.2;
             }
         }
-
         function fadeTo(v, secs) {
             if (!master) return;
             const t = ctx.currentTime;
